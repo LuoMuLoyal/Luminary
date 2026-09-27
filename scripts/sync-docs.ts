@@ -211,6 +211,8 @@ interface Report {
   escapingSamples: EscapeSample[];
   /** 从 content/nav/ 复制过去的导航文件数（index.mdx / meta.json）。 */
   navCopied: number;
+  /** 从 Lucent compodoc 拷到 public/compodoc 的文件数。 */
+  compodocCopied: number;
 }
 
 /**
@@ -366,6 +368,7 @@ async function sync(): Promise<Report> {
     warnings: [],
     escapingSamples: [],
     navCopied: 0,
+    compodocCopied: 0,
   };
 
   // 整体清空再写：源文件被删除后站点不残留
@@ -456,7 +459,34 @@ async function sync(): Promise<Report> {
   // 若把它们直接写在 content/docs/ 里，每次同步都会被 rm 掉。
   report.navCopied = await copyNav();
 
+  // compodoc 产物（Lucent 的 API 文档站）整体拷到 public/ 下作外链入口。
+  report.compodocCopied = await copyCompodoc();
+
   return report;
+}
+
+/**
+ * 把 `Lucent/docs/reference/generated/compodoc/` 整目录拷到 `public/compodoc/`。
+ *
+ * 767 个 HTML，是本站体积的大头之一（见规划 Phase 5 的体积说明）。
+ * 用整目录拷贝而不是逐篇同步：compodoc 产物内部互相链接，
+ * 改写路径反而会破坏它自己的导航。
+ */
+async function copyCompodoc(): Promise<number> {
+  const from = join(LUCENT, "docs", "reference", "generated", "compodoc");
+  const to = join(repoRoot, "public", "compodoc");
+
+  await rm(to, { recursive: true, force: true });
+  if (!existsSync(from)) return 0;
+
+  const files = await walk(from, true);
+  for (const file of files) {
+    const rel = relative(from, file);
+    const dest = join(to, rel);
+    await mkdir(dirname(dest), { recursive: true });
+    await writeFile(dest, await readFile(file));
+  }
+  return files.length;
 }
 
 /** 把 content/nav/** 原样复制到 content/docs/**，返回复制文件数。 */
@@ -479,7 +509,7 @@ const report = await sync();
 
 console.log("文档同步完成\n");
 console.log(
-  `写入 ${report.written} 篇，跳过 ${report.skipped} 篇，导航 ${report.navCopied} 个\n`,
+  `写入 ${report.written} 篇，跳过 ${report.skipped} 篇，导航 ${report.navCopied} 个，compodoc ${report.compodocCopied} 个\n`,
 );
 
 const rows = Array.from(report.bySection.entries()).sort((a, b) =>

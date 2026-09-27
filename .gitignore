@@ -51,9 +51,7 @@ next-env.d.ts
 /content/docs/meta.json
 /content/docs/index.mdx
 
-# 生成的参考内容
-/content/docs/api/
-/content/docs/errors/
-
-# compodoc 产物（W2）
+# 生成的参考内容。
+# 注意 errors/ **不在**这里：错误码页是手写的（content/nav/errors/index.mdx），必须进 git。
+# api/ 也不需要：那 143 个页面是构建期虚拟页（见 lib/source.ts），磁盘上根本不生成。
 /public/compodoc/

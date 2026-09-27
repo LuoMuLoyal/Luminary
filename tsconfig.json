@@ -30,5 +30,14 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    // 构建产物，类型检查不该看
+    "out",
+    ".next",
+    // compodoc 产物里带 Compodoc 自己的 template-playground 源码（Angular .ts），
+    // 那些文件依赖 @angular/*，本站并不安装，也不参与构建——只是作为静态资源整体搬运。
+    // 不排除的话 `next build` 的类型检查会去编译它们并报一堆找不到模块。
+    "public/compodoc"
+  ]
 }

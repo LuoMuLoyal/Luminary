@@ -1,0 +1,35 @@
+---
+title: 代码结构文档
+description: Lucent 后端由 compodoc 生成的模块、类与依赖图
+---
+
+Lucent 是一个 NestJS 项目。**compodoc** 从源码与 JSDoc 注释生成一套完整的代码结构文档：
+模块依赖图、控制器与服务清单、类继承关系、路由表与覆盖率报告。
+
+这套文档由后端命令生成，本站只是整体搬运过来作外链入口。
+
+- [打开 compodoc 文档](/compodoc/index.html)
+
+## 与其它参考页的分工
+
+| 你想知道 | 看哪里 |
+| --- | --- |
+| 某个 HTTP 接口的请求/响应格式 | [API 参考](/luminous/docs/api)（由 OpenAPI spec 生成） |
+| 某个接口失败时返回什么 | [错误码参考](/luminous/docs/errors) |
+| 某个模块为什么这样设计 | [架构决策记录](/luminous/docs/lucent/adr/0001-nestjs-prisma-stack) |
+| 某个模块负责什么、边界在哪 | [模块文档](/luminous/docs/lucent/modules/auth) |
+| 某个类/服务有哪些方法、谁依赖谁 | **compodoc**（本页） |
+
+compodoc 是**实现视角**的文档：它回答「代码里有什么」，而模块 README 回答「为什么这样分」。
+两者互补，不重复。
+
+## 更新方式
+
+compodoc 产物在 `Lucent/docs/reference/generated/compodoc/`，由后端生成，**禁止手改**：
+
+```bash
+cd Lucent
+pnpm docs:compodoc
+```
+
+站点侧在 `pnpm sync:docs` 时整目录拷贝到 `public/compodoc/`，产物不进 git。

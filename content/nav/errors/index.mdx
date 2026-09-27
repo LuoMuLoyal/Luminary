@@ -1,0 +1,162 @@
+---
+title: 错误码参考
+description: Lucent 后端 RFC 9457 Problem Details 的稳定错误码注册表
+---
+
+Lucent 的失败响应一律使用 RFC 9457 Problem Details（`Content-Type: application/problem+json`），
+成功响应直接返回资源本身、**不套 envelope**。契约定义见
+[ADR-0012](/luminous/docs/lucent/adr/0012-error-contract-and-result-boundary)。
+
+## 响应形状
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+```
+
+```json
+{
+  "type": "https://api.lumos.example/problems/record-already-exists",
+  "title": "记录已存在",
+  "detail": "请求范围内已经存在一条记录。",
+  "code": "RECORD_ALREADY_EXISTS",
+  "retryable": false,
+  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+}
+```
+
+| 字段        | 必填 | 说明                                                       |
+| ----------- | ---- | ---------------------------------------------------------- |
+| `type`      | 是   | 稳定的问题 URI，由 `code` 推导                              |
+| `title`     | 是   | 简短稳定的摘要，随 `Accept-Language` 本地化                 |
+| `detail`    | 是   | 面向本次请求的可读说明，随 `Accept-Language` 本地化         |
+| `code`      | 是   | 稳定的业务错误码，**不编码 HTTP status**                    |
+| `errors`    | 否   | 校验失败时的结构化字段错误，内容经过安全裁剪                 |
+| `retryable` | 否   | 服务端给出的重试提示                                        |
+| `retryAfter`| 否   | 建议等待秒数                                                |
+| `traceId`   | 否   | 诊断关联 ID；**不得用于业务分支**                            |
+
+客户端应当依据 **HTTP status + `code`** 分支，不要依赖 `message` 或 `detail` 文案——
+它们会随语言和措辞变化。
+
+## 出站兜底规则
+
+`ApiExceptionFilter` 处理异常时：只有「**已登记且 status 匹配**」的显式 `code` 才被采纳，
+否则按 status 回落到默认码。
+
+| HTTP status | 默认 code              |
+| ----------- | ---------------------- |
+| 400         | `VALIDATION_FAILED`    |
+| 401         | `AUTH_REQUIRED`        |
+| 403         | `FORBIDDEN`            |
+| 404         | `RESOURCE_NOT_FOUND`   |
+| 409         | `RESOURCE_CONFLICT`    |
+| 429         | `RATE_LIMITED`         |
+| 502         | `DEPENDENCY_BAD_GATEWAY` |
+| 503         | `DEPENDENCY_UNAVAILABLE` |
+| 504         | `DEPENDENCY_TIMEOUT`   |
+| 其余        | `INTERNAL_ERROR`       |
+
+未登记的 `code` 在纯 helper 层（`toProblemDetails`）直接抛错，保证「码未登记就出不了网」。
+未知异常一律归为 `INTERNAL_ERROR`。
+
+## 全部错误码
+
+「可重试」列是注册表声明的**默认值**，服务端可按请求覆盖；它不凌驾于 HTTP 方法的幂等性
+与 `Retry-After` 之上。文案为 `zh-CN`，`en` 见后端 `src/i18n/en/common.json`。
+
+### 身份与会话（401 / 403）
+
+| code | HTTP | 可重试 | 标题 | 说明 |
+| --- | --- | --- | --- | --- |
+| `AUTH_REQUIRED` | 401 | 否 | 需要身份验证 | 请先登录后继续此请求。 |
+| `AUTH_TOKEN_EXPIRED` | 401 | 否 | 登录令牌已过期 | 登录会话已过期，请重新登录后继续。 |
+| `AUTH_REFRESH_TOKEN_INVALID` | 401 | 否 | 刷新会话无效 | 当前会话无法继续刷新，请重新登录。 |
+| `AUTH_WRONG_PASSWORD` | 401 | 否 | 密码错误 | 密码不正确，请检查后重试。 |
+| `AUTH_PASSWORD_NOT_SET` | 401 | 否 | 未设置密码 | 当前账号未设置密码，请先设置密码后再进行此操作。 |
+| `AUTH_OAUTH_FAILED` | 401 | 否 | 第三方登录失败 | 无法使用第三方账号完成登录，请稍后重试。 |
+| `FORBIDDEN` | 403 | 否 | 无权访问 | 你没有执行此操作的权限。 |
+| `AUTH_SESSION_ACCESS_DENIED` | 403 | 否 | 无权管理此会话 | 你不能管理其他用户的会话。 |
+
+### 验证码与第三方登录（400）
+
+| code | HTTP | 可重试 | 标题 | 说明 |
+| --- | --- | --- | --- | --- |
+| `AUTH_VERIFICATION_CODE_EXPIRED` | 400 | 否 | 验证码已过期 | 验证码已过期或已失效，请重新获取验证码。 |
+| `AUTH_VERIFICATION_CODE_MISMATCH` | 400 | 否 | 验证码不匹配 | 验证码不匹配，请检查后重试。 |
+| `AUTH_OAUTH_STATE_INVALID` | 400 | 否 | 第三方登录请求已失效 | 第三方登录请求无效或已过期，请重新发起登录。 |
+
+### 请求参数（400）
+
+| code | HTTP | 可重试 | 标题 | 说明 |
+| --- | --- | --- | --- | --- |
+| `VALIDATION_FAILED` | 400 | 否 | 请求参数无效 | 一个或多个字段无效，请检查标记的字段后重试。 |
+| `DOSE_LOG_TARGET_UNRESOLVED` | 400 | 否 | 无法匹配服药记录目标 | 请求未指明对应的服药记录，请携带提醒或当前用药信息。 |
+
+`DOSE_LOG_TARGET_UNRESOLVED` 从通用 `VALIDATION_FAILED` 中单独拆出：请求体本身合法，
+只是**无法定位到具体的服药记录槽位**（既没有 `reminderId`，也没有可回退的当前用药）。
+离线同步队列需要区分「服务端无法匹配此载荷」与「请求格式错误」，两者的重试决策不同。
+
+### 资源不存在（404）
+
+| code | HTTP | 可重试 | 标题 | 说明 |
+| --- | --- | --- | --- | --- |
+| `RESOURCE_NOT_FOUND` | 404 | 否 | 资源不存在 | 找不到请求的资源。 |
+| `AUTH_SESSION_NOT_FOUND` | 404 | 否 | 会话不存在 | 请求的会话不存在或已经结束。 |
+| `NOTIFICATION_NOT_FOUND` | 404 | 否 | 通知不存在 | 请求的通知已不存在。 |
+| `LEGAL_DOCUMENT_NOT_FOUND` | 404 | 否 | 法律文档不存在 | 请求的法律文档不可用。 |
+| `SUGGESTION_NOT_FOUND` | 404 | 否 | 建议不存在 | 请求的建议已不存在。 |
+| `REPORT_SHARE_NOT_FOUND` | 404 | 否 | 报告分享不存在 | 报告分享链接无效、已过期或已撤销。 |
+
+跨用户访问其他用户的资源一律返回 **404**（而非 403），避免通过状态码泄露资源是否存在。
+
+### 状态冲突（409）
+
+| code | HTTP | 可重试 | 标题 | 说明 |
+| --- | --- | --- | --- | --- |
+| `RESOURCE_CONFLICT` | 409 | 否 | 资源状态冲突 | 请求与当前资源状态冲突，请刷新后重试。 |
+| `RECORD_ALREADY_EXISTS` | 409 | 否 | 记录已存在 | 请求范围内已经存在一条记录。 |
+
+### 限流（429）
+
+| code | HTTP | 可重试 | 标题 | 说明 |
+| --- | --- | --- | --- | --- |
+| `RATE_LIMITED` | 429 | 是 | 请求过于频繁 | 请求过于频繁，请稍后重试。 |
+| `AUTH_LOGIN_RATE_LIMITED` | 429 | 是 | 登录尝试过于频繁 | 登录尝试次数过多，请 `{minutes}` 分钟后再试。 |
+| `AUTH_VERIFICATION_CODE_COOLDOWN` | 429 | 是 | 验证码冷却中 | 暂时不能再次获取验证码，请稍后再试。 |
+| `AUTH_VERIFICATION_CODE_RATE_LIMITED` | 429 | 是 | 验证码请求次数过多 | 验证码请求次数过多，请稍后重试。 |
+
+`AUTH_LOGIN_RATE_LIMITED` 的 `detail` 带 `{minutes}` 插值参数。
+
+### 依赖与服务器（499 / 500 / 502 / 503 / 504）
+
+| code | HTTP | 可重试 | 标题 | 说明 |
+| --- | --- | --- | --- | --- |
+| `INTERNAL_ERROR` | 500 | 否 | 服务器内部错误 | 服务器无法完成请求，请稍后重试。 |
+| `DEPENDENCY_BAD_GATEWAY` | 502 | 是 | 上游服务错误 | 上游服务返回了无效响应，请稍后重试。 |
+| `DEPENDENCY_UNAVAILABLE` | 503 | 是 | 服务暂时不可用 | 请求所需的服务暂时不可用，请稍后重试。 |
+| `AUTH_METHOD_DISABLED` | 503 | 是 | 认证方式不可用 | 当前认证方式不可用，请稍后重试或使用其他方式登录。 |
+| `SERVER_SHUTDOWN` | 503 | 是 | 服务器正在关闭 | 服务器正在关闭，请稍后重新发起请求。 |
+| `DEPENDENCY_TIMEOUT` | 504 | 是 | 服务响应超时 | 请求所需的服务未及时响应，请稍后重试。 |
+| `STREAM_CANCELLED` | 499 | 否 | 流式请求已取消 | 流式请求在完成前被取消。 |
+
+`STREAM_CANCELLED` 使用 499（客户端主动断开），只出现在 SSE 流式接口，
+此时的响应体是 `SseProblemDetails`——在标准字段之外多一个 `status`
+（`client_error` / `server_error` / `cancelled` / `server_shutdown` / `unknown`）。
+
+## 维护方式
+
+本页**手写维护**，不从 `problem-catalog.ts` 自动提取。这是显式接受的取舍：
+两仓的约定是「可生成内容不手写」，但错误码页的读者需要的是分组、回落规则与
+业务语境说明，这些无法从注册表机械推导。
+
+对照关系：
+
+| 来源 | 路径 |
+| --- | --- |
+| 注册表（唯一事实源） | `Lucent/src/common/api/problem-catalog.ts` |
+| 双语文案 | `Lucent/src/i18n/{zh-CN,en}/common.json` |
+| 传输契约 | `Lucent/docs/reference/adr/0012-error-contract-and-result-boundary.md` |
+
+新增错误码时需同步：注册表加条目 → 补双语 i18n key → 涉及 HTTP 语义变化时补 e2e 断言 →
+**更新本页**。删除或改 status 属 breaking change。

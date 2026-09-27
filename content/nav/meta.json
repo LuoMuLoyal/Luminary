@@ -1,4 +1,14 @@
 {
   "title": "文档",
-  "pages": ["index", "manual", "---项目文档---", "luminous", "lucent", "---参考---", "api", "errors"]
+  "pages": [
+    "index",
+    "manual",
+    "---项目文档---",
+    "luminous",
+    "lucent",
+    "---参考---",
+    "api",
+    "errors",
+    "compodoc"
+  ]
 }
