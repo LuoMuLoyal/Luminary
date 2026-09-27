@@ -1,0 +1,43 @@
+---
+title: API 参考
+description: Lucent 后端全部 HTTP 端点的请求与响应契约
+---
+
+本分区由**后端 OpenAPI spec 自动生成**：spec 来自
+`Lucent/docs/reference/generated/openapi.json`，在构建期读取并渲染，
+本站不手写 endpoint 说明。
+
+契约的生成链路与唯一事实源见根目录 [AGENTS.md](/luminous/docs)。当前 spec 为
+**OpenAPI 3.0**，共 **143 个端点 / 23 个分组**。
+
+## 按分组浏览
+
+左侧导航按后端模块的 tag 分组，每一组对应一类功能：
+
+- **Auth** —— 登录、注册、验证码、第三方登录与会话管理
+- **Account** —— 账号资料、邮箱与密码
+- **User Settings** / **User Health Context** —— 用户设置与健康上下文
+- **Health** / **Health Events** —— 健康检查与健康观察
+- **Daily Records** —— 日常记录（饮水、睡眠、症状等）
+- **Medicines** / **Medicine Reminders** / **Medicine Dose Logs** —— 药品与用药
+- **Today Analysis** / **Today Suggestion** —— 今日分析与建议
+- **Reports** —— 报告生成、分享与 PDF 导出
+- **Assistant** —— AI 助手对话
+- **Notifications** / **Notification Preferences** / **Reminder Deliveries** —— 通知
+- **Data Export** / **Legal Documents** / **Product Events** / **Files** —— 导出、法律文档等
+
+## 约定
+
+- **成功响应直接返回资源本身**，不套 `code`/`message`/`data` envelope。
+- **失败响应是 RFC 9457 Problem Details**（`application/problem+json`）。
+  全部错误码见[错误码参考](/luminous/docs/errors)。
+- 客户端应依据 **HTTP status + `code`** 分支，不要依赖 `message` 文案。
+
+> 每个端点页展示的参数、请求体与响应 schema 都直接来自 spec。
+> 若发现与实际行为不符，问题在 spec 或后端实现，应当去修 `Lucent`，而不是改这里 ——
+> 本分区的页面每次构建都会重新生成，手工修改不会保留。
+
+## 相关
+
+- [错误码参考](/luminous/docs/errors) —— 失败时的稳定业务码与兜底规则
+- [代码结构文档](/luminous/docs/compodoc) —— 模块、类与依赖图（compodoc）

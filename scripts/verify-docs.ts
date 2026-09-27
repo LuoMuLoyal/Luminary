@@ -67,6 +67,7 @@ const MANUAL_PAGES = [
   "manual/review.mdx",
   "manual/mine.mdx",
   "manual/medicine-reminder.mdx",
+  "api/index.mdx",
   "errors/index.mdx",
   "compodoc/index.mdx",
 ];
