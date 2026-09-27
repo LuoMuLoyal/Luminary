@@ -1,6 +1,6 @@
 # Luminary Monorepo 改造计划
 
-> 状态：**待评审**（仅计划，不含任何结构改动）
+> 状态：**执行中**（结构改造已开工）
 > 前置阅读：`2026-09-28-docs-site-rollout-plan.md`（文档站落地，已完成）
 
 ## 一、背景：Luminary 的定位变了
@@ -99,14 +99,16 @@ packages/{eslint-config,typescript-config,ui}
 
 ```
 Luminary/                        # monorepo 根
-├── pnpm-workspace.yaml          # packages: apps/*（已存在，扩充）
+├── pnpm-workspace.yaml          # packages: apps/* + packages/*；allowBuilds 已存在
 ├── package.json                 # 根：仅编排脚本，无应用依赖
+├── turbo.json                   # 任务图与缓存
 ├── apps/
 │   ├── site/                    # 官网 + 文档站（静态）
 │   ├── personal/                # 个人网站（静态）
 │   └── workbench/               # 桌面工作台（SSR）
 │       └── src-tauri/           # Tauri 壳
-└── packages/                    # 【暂不创建】见 §六
+└── packages/                    # 跨 app 共享
+    └── sync/                    # 文档同步与门禁脚本（见 §四 Phase 3）
 ```
 
 ### 分区判据（为什么这么分）
@@ -139,28 +141,39 @@ Luminary/                        # monorepo 根
 > 理由：本次迁移会改动 `pnpm build`、CI、`.gitignore`、`verify:docs` 的路径假设。
 > 若 CI 本身从未验证过，出错时分不清是迁移问题还是 CI 问题。
 
-### Phase 1：workspace 骨架（不移动任何应用）
+### Phase 1：workspace 骨架（不移动任何应用的内容）
 
 - 扩充 `pnpm-workspace.yaml` 为 `packages: [apps/*, packages/*]`
 - 根 `package.json` 只保留编排脚本，应用依赖下沉
 - 建立 `apps/` 并把现有内容整体移入 `apps/site/`（`git mv`，保留历史）
-- **验收**：`apps/site` 的 `pnpm build` 产物与迁移前**逐文件一致**
+- **修正仓库根推导**：`sync-docs.ts` / `verify-docs.ts` 原先用 `resolve(scriptDir, '..')`
+  推导仓库根，移入 `apps/site/` 后会指向 `apps/`，需改为按 workspace 根推导
+- **验收**：`apps/site` 的 `pnpm build` 产物与迁移前**逐文件一致**（SHA256 全等）
 
 > 这一步只动位置，不动内容。先证明"搬家不影响构建"，再谈别的。
 
-### Phase 2：抽出 site 的共享配置
+### Phase 2：拆分 `sync-docs.ts`（见 §6.2）
 
-- 把 `eslint.config.mjs`、`tsconfig.json`、`postcss.config.mjs` 中可复用的部分
-  抽到根或 `packages/config`
-- **验收**：`apps/site` 的 lint 与 build 结果不变
+- 按职责拆成 `scripts/sync/{rules,walk,frontmatter,escape,rewritelinks,nav,compodoc}.ts`
+- **验收**：同步输出**逐字一致**；`verify:docs` 通过；负向测试仍退出码 1
 
-### Phase 3：建立 personal
+> 纯重构，不改行为。放在搬家之后，基线已稳定，可逐字对比。
+
+### Phase 3：抽出 `packages/` 与引入 Turbo
+
+- 把拆好的同步/门禁脚本迁到 `packages/sync`，作为**首个真实共享包**
+- 建立 `turbo.json`，根脚本改为 `turbo run <task>`
+- `packages/sync` 的脚本需从"相对 `__dirname` 猜仓库根"改为**显式接收 workspace 根**
+- **验收**：`pnpm build`、`pnpm ci:docs` 经 Turbo 跑通且产物不变；
+  重复执行命中缓存（第二次 < 5 秒）
+
+### Phase 4：建立 personal
 
 - 新建 `apps/personal`，沿用 site 的技术栈基线
 - 与 site 之间**不共享组件**（叙事不同，强行共享会互相牵制）
 - **验收**：独立构建、独立产物
 
-### Phase 4：建立 workbench 骨架（不含业务功能）
+### Phase 5：建立 workbench 骨架（不含业务功能）
 
 - 新建 `apps/workbench`，**不带** `output: 'export'`
 - 加 `src-tauri/` 壳
@@ -169,30 +182,34 @@ Luminary/                        # monorepo 根
 > 本阶段**只搭骨架**。工作台的功能集是独立计划（ADR-0008 第 22 行：
 > "0.1.0 发布后启动桌面 MVP"），不在本计划内。
 
-### Phase 5：路由与部署编排
+### Phase 6：路由与部署编排
 
 - 决定 zone 之间的路由方式（见 §八 待定）
 - 每个 zone 配 `assetPrefix`，互不冲突
 - CI 扩展为按 app 分别构建
 - **验收**：三个 app 的产物可同时部署且互不覆盖
 
+> ⚠️ 跨 zone 链接必须用 `<a>` 而非 `<Link>`：Next.js 的 `<Link>` 会尝试
+> prefetch 并对相对路径做软跳转，跨 zone 不生效（见 Next.js multi-zones 指南
+> "Linking between zones"）。这条约束落在 Phase 6，但写组件时常会踩。
+
 ## 五、需要修订的既有决策
 
-### ADR-0008 需要被取代
+### ADR-0008 已就地修订完成
 
 `Luminous/docs/reference/adr/0008-desktop-independent-web-product-route.md`
-（Status: accepted）第 18 行规定：
+**已就地修订**（不新增 ADR），落地结果：
 
-> **独立桌面客户端使用 Next.js + Tauri**……**客户端代码归属 Lucent 仓库**
+| 项 | 修订前 | 修订后 |
+|---|---|---|
+| 客户端代码归属 | `Lucent` 仓库 | **`Luminary` 仓库** |
+| 后端服务 | 未明确 | **由 `Lucent` 提供**（合同仍以后端为准） |
+| Status | `accepted` | `accepted (amended 2026-09-27: 客户端代码归属由 Lucent 改为 Luminary；后端合同仍由 Lucent 提供)` |
 
-**该归属应改为 `Luminary`。** 理由：
-
-1. **同构收益**：`Luminary` 已是 Next.js 16 + React 19 + TS，
-   工作台 (ADR 要求 Next.js) 可直接复用构建链、React 版本、组件与设计 token。
-2. **避免污染后端仓库**：`Lucent` 是活跃 NestJS 后端，`pnpm build` / `test:ci` /
-   `export:openapi` 均绑在后端语义上。塞入 Next.js 意味着两套构建系统、两份 tsconfig、
-   两种模块解析，且要动**线上服务所在仓库**的结构——风险不对称。
-3. **官方与先例支持**：见 §二。
+**为什么就地改而不是新增 ADR-0010**：本次修订**不改变决策本身**——
+桌面端仍走独立 Next.js + Tauri 路线，只改了两件事的指向（代码放哪、后端谁提供）。
+新增一份 ADR 会让"路线是否已定"多出一个需要交叉阅读的文档，
+而问题恰恰是原先**太多文档各说一套**。就地修订把口径收敛回一处。
 
 **ADR-0008 中仍然有效的部分**（不因归属改变而失效）：
 - 桌面端走独立产品路线，不复制手机端五个入口
@@ -201,44 +218,20 @@ Luminary/                        # monorepo 根
 - 共享业务合同（OpenAPI、认证、健康数据语义），不共享页面结构
 - 桌面壳选 Tauri；PWA 不在路线内
 
-**执行方式**：新增
-`Luminous/docs/reference/adr/0010-desktop-client-repository-placement.md`
-（Status: `accepted`），并在其中标注 supersedes ADR-0008 的**归属条款**。
-ADR 目录约定为 add-only，因此**不修改 0008 本体**；需在 0008 中加一行指向 0010 的说明。
+### 口径冲突已消除
 
-### ⚠️ 修订前必须先解决的口径冲突
+ADR-0008 修订时发现的活跃文档冲突**已同步更正**，现行文档口径一致：
 
-调研中发现 `Luminous` 内部对**技术路线本身是否已定**存在矛盾表述，需一并厘清，
-否则新 ADR 会建立在一个自相矛盾的基础上：
+| 文档 | 更正后 |
+|---|---|
+| `docs/reference/adr/0008-...md` | 已选（归属 Luminary、后端 Lucent） |
+| `docs/reference/adr/README.md` | 索引状态同步 |
+| `docs/product/product-vision.md` | 路线已定 + 指向 ADR-0008 |
+| `docs/product/product-mvp-scope.md` | 技术路线已定 + 指向 ADR-0008 |
+| `docs/product/product-information-architecture.md` | 两处均已更正 |
+| `docs/explanation/project-governance.md` | 两处均已更正 |
 
-| 文档 | 表述 | 口径 |
-|---|---|---|
-| `docs/reference/adr/0008-...md` | "**已选**"，Status: `accepted` | **已决策** |
-| `docs/TODO.md:20` | "0.1.0 后**启动**独立 Next.js + Tauri 桌面工作台 MVP" | 已决策（作为待办执行项） |
-| `docs/product/product-vision.md:40` | "是否采用 Next.js Web + Tauri 2……**等待独立调研后决策**" | **未决策** |
-| `docs/product/product-mvp-scope.md:59` | "Next.js + Tauri 2 **候选**技术路线另行调研" | **未决策** |
-| `docs/product/product-information-architecture.md:117` | "Next.js + Tauri 2 **候选**路线另行调研" | **未决策** |
-| `docs/archive/2026-08/...` | "仅作**候选**，不写成已定技术决策" | 未决策 |
-
-即：**ADR 说"已选"，产品文档说"待研究"**。虽然存档文档不构成现行决策，
-但 `product-vision.md`、`product-mvp-scope.md`、`product-information-architecture.md`
-是**活跃文档**，与 ADR 直接冲突。
-
-**因此在新 ADR 之前需要你先确认一件事**：
-
-> 桌面端「Next.js + Tauri」到底是**已定路线**（ADR-0008 口径），
-> 还是**候选、尚待调研**（产品文档口径）？
-
-- 若是**已定** → 新 ADR 只需改归属，同时应修正那三份产品文档的表述。
-- 若**尚未定** → 那么本次要决定的就**不止是"放哪个仓库"**，
-  而是先决定是否采用该路线；`Luminary` 的 monorepo 改造也应相应推迟或缩小范围
-  （例如只先做 site + personal 两个 zone，桌面端结构待路线确定后再建）。
-
-**这一点会影响 Phase 4 是否现在执行**，故列为前置决策项。
-
-> ⚠️ 注意：`Lucent/docs/` 侧也有 ADR（如 ADR-0012 响应契约）。
-> 若 Lucent 侧存在与桌面端归属相关的记录，需一并核对。
-> **本项在动手前应先确认。**
+`docs/archive/**` 下的"候选"表述**不动**——存档是冻结的历史，不是现行口径。
 
 ## 六、随本计划一并处理的两项技术债
 
@@ -342,9 +335,9 @@ scripts/
 
 #### 与 Phase 1 的关系
 
-**在 Phase 1（workspace 骨架）之前完成拆分**。理由：Phase 1 需要修正仓库根推导
-（`resolve(scriptDir, '..')` 在 `apps/site/` 下会指错），
-**先把职责拆清楚，再改路径推导，改动面小且可验证**。
+**拆分在 Phase 1（workspace 骨架）之后进行**，作为 **Phase 2**。
+理由：Phase 1 只做"搬家 + 修正路径推导"，改动越少越容易验证产物逐字一致；
+拆分是纯重构，放在搬家之后、有稳定基线可对比时做，责任边界更清楚。
 
 #### 验收
 
@@ -352,15 +345,15 @@ scripts/
 - `pnpm verify:docs` 通过
 - `pnpm build` 成功
 - 负向测试：移走一个手写页 → 门禁仍退出码 1
+- 拆分产物落位 `packages/sync`（见 Phase 3），不再是 app 私有脚本
 
 ## 七、明确不做的事
 
-- **暂不建 `packages/`**。真实先例建了 `packages/ui` 是因为其三个资产来自不同技术栈
-  （vanilla React + Vite / full-stack / Fumadocs），统一设计系统是真需求。
-  本项目三个 app 同栈，**等出现第二处真实重复再抽**。先建后拆的成本高于需要时再建。
-  （同理适用于本项目的既有原则：不做「伪需求」预案。）
-- **暂不引入 Turbo / Nx**。当前文档站构建约 40 秒，三 app 串行约 2–3 分钟，
-  尚未构成负担。编排工具是**增量**，日后加入不影响目录结构。
+- **`packages/` 只放真实共享物，不做设计系统共享**。三个 app 同栈，
+  共享 UI 组件属于"先建后拆"——等出现第二处真实重复再抽。
+  首个进 `packages/` 的是**文档同步脚本**（`site` 用、根编排用，见 Phase 3），
+  它跨 app 复用且与构建无关，是最没有争议的一项。
+- **不引入 Nx**。只用 Turbo：任务是"构建 + 校验"，无 Nx 的插件/图/生成器需求。
 - **不动 `Lucent` 的仓库结构**。本计划全部改动限于 `Luminary`（外加 §五 的 ADR 文档）。
 - **不实现工作台业务功能**。仅搭骨架，功能集另行计划。
 - **不做 `personal` 的内容设计**。本计划只确定它的 app 边界与位置。
@@ -369,14 +362,14 @@ scripts/
 
 ## 八、待定事项
 
-以下三项**在相应阶段之前必须定**：
+以下事项**在相应阶段之前必须定**：
 
-### 8.1 桌面端技术路线是否已定（**Phase 4 前置**）
+### 8.1 桌面端技术路线是否已定 —— ✅ 已解决
 
-见 §五「修订前必须先解决的口径冲突」。ADR-0008 说已选，三份活跃产品文档说待调研。
-**这一项没定之前，Phase 4 不应开工。**
+ADR-0008 **已就地修订**，路线为**已定**（Next.js + Tauri），客户端代码归属 `Luminary`，
+后端服务由 `Lucent` 提供。活跃产品文档已同步更正口径。**Phase 4 无阻塞。**
 
-### 8.2 域名与路径划分（**Phase 5 前置**）
+### 8.2 域名与路径划分（**Phase 6 前置，仍未定**）
 
 multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路径是
 `devluo.com/luminous/docs`。待定：官网、个人站、工作台各自用什么路径或域名。
@@ -384,7 +377,7 @@ multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路�
 - 子路径（`devluo.com/me`、`devluo.com/desktop`）→ 需要 rewrite 或代理
 - 独立域名 → 无需代理，但失去"同一站点"的观感
 
-### 8.3 托管方是否支持 rewrite（**Phase 5 前置**）
+### 8.3 托管方是否支持 rewrite（**Phase 6 前置**）
 
 §8.2 若选子路径，则需要在托管侧做路由代理。**需先确认对象存储 + CDN
 能否配置 rewrite 规则**；不能的话只能退回「各 zone 独立挂载」，方案随之调整。
@@ -397,16 +390,59 @@ multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路�
 - **Lumos-docs 的退役**：它是本站的 VitePress 前身，功能已被 `Luminary` 完全覆盖。
   退役流程与时机不在本计划内，**建议等本计划 Phase 1 验收通过后再单独推进**。
 
-## 九、风险
+## 九、Turbo 与 `packages/` 的边界
+
+### 9.1 为什么是 Turbo 而不是 Nx
+
+任务是"三个 app 各自构建 + 一组校验脚本"。没有 Nx 的插件生态、生成器、
+模块边界强制需求。Turbo 只做两件事：**按依赖图排序**、**按输入哈希缓存**，
+这恰好是需要的全部。
+
+### 9.2 任务图
+
+```jsonc
+// turbo.json
+{
+  "tasks": {
+    "build":     { "dependsOn": ["^build"], "outputs": ["out/**", ".next/**"] },
+    "lint":      { "dependsOn": ["^build"] },
+    "sync:docs": { "cache": false },          // 有副作用：写 content/ 与 public/
+    "verify:docs": { "dependsOn": ["sync:docs"] },
+    "ci:docs":   { "dependsOn": ["verify:docs", "build"] }
+  }
+}
+```
+
+**关键判断**：
+- `sync:docs` **必须 `cache: false`**。它不是纯函数——会 `rm` 再写 `content/docs/`
+  与 `public/compodoc/`，被缓存跳过会导致"产物看起来在、其实是上一轮的"。
+- `build` 的 `outputs` 必须声明。Turbo 靠它做缓存复用，漏了就只有"跳过"没有"恢复"。
+- `verify:docs` 依赖 `sync:docs` 而非反过来——门禁校验的是同步结果。
+
+### 9.3 `packages/` 的首个包
+
+`packages/sync`（文档同步与门禁）：
+
+| 项 | 说明 |
+|---|---|
+| 为什么是它 | 与渲染/构建完全解耦；`site` 与根编排都要用；迁移风险最低 |
+| 形态 | 内部包，`"private": true`，无构建步骤（Node 24 直接跑 `.ts`） |
+| 定位 | 所有路径由**调用方显式传入 workspace 根**，包内不猜目录 |
+
+**仍然不抽的**：UI 组件、设计 token、eslint/tsconfig 预设。
+三个 app 同栈，抽共享 UI 属于"先建后拆"；等第二处真实重复再抽。
+
+## 十、风险
 
 | 风险 | 影响 | 应对 |
 |---|---|---|
-| 迁移破坏已完成的文档站 | 文档站刚验收完毕，返工成本高 | Phase 1 以「产物逐文件一致」为硬验收，且在此之前先验证 CI |
+| 迁移破坏已完成的文档站 | 文档站刚验收完毕，返工成本高 | Phase 1 以「产物逐文件一致」为硬验收 |
 | multi-zones 的硬跳转 | 官网→文档若跨 zone 会有整页重载 | 已将二者并入同一 zone（§2.2） |
 | `assetPrefix` 配置错误 | 静态资源 404 | 每个 zone 独立构建后逐一验证资源路径 |
 | 根 `package.json` 与 app 依赖混淆 | 依赖提升导致构建行为变化 | 根只放编排脚本，应用依赖不下沉到根 |
-| 迁移期间 `content/` 同步脚本路径失效 | `sync:docs` / `verify:docs` 写死相对仓库根的路径 | 迁移时同步修正两个脚本的 `repoRoot` 推导并复跑门禁 |
+| 迁移期间 `content/` 同步脚本路径失效 | `sync:docs` / `verify:docs` 写死相对仓库根的路径 | Phase 1 同步修正两个脚本的仓库根推导并复跑门禁 |
+| Turbo 缓存掩盖副作用 | `sync:docs` 被判为命中，产物停留在上一轮 | 该任务显式 `cache: false`；门禁只信 `pnpm ci:docs` 全跑 |
 
-> **最后一条是实际最高频的坑**：`scripts/sync-docs.ts` 与 `scripts/verify-docs.ts`
+> **路径推导是实际最高频的坑**：`scripts/sync-docs.ts` 与 `scripts/verify-docs.ts`
 > 都用 `resolve(scriptDir, '..')` 推导仓库根。移入 `apps/site/` 后该推导会指向
-> `apps/`，需改为按 workspace 根或显式配置推导。**Phase 1 必须一并处理并复跑门禁。**
+> `apps/`。**Phase 1 必须一并处理并复跑门禁。**
