@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // compodoc 产物（由 sync:docs 从 Lucent 拷入 public/）是**第三方生成的静态资源**：
+    // 含 767 个 HTML 与 Compodoc 自己的 Angular playground 源码。它们不参与本站构建，
+    // 只是整体搬运，对它们做 lint 会报 3000+ 条与本站无关的问题（且每次都一样）。
+    // tsconfig.json 早已为同一理由排除了这个目录；这里保持一致。
+    "public/compodoc/**",
   ]),
 ]);
 

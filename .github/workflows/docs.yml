@@ -88,10 +88,13 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: Luminary
 
-      # 同步 + 门禁 + 构建，三步串行；任一步非 0 即整步失败。
-      # monorepo 改造后由根编排脚本驱动（根 ci:docs → turbo → apps/site）。
+      # 同步 + 门禁 + 构建，串行；任一步非 0 即整步失败。
+      #
+      # ⚠️ 这里**只跑 site**，不是根 `pnpm ci:docs`：根脚本会带上 personal 与
+      # workbench，而本 workflow 的职责只是文档站。文档站的改动不该让另外两个
+      # app 的构建失败挡住（反之亦然）。
       - name: 同步、门禁与构建
-        run: pnpm ci:docs
+        run: pnpm --filter @luminary/site ci:docs
         working-directory: Luminary
 
       - name: 产物体积摘要

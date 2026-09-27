@@ -1,6 +1,6 @@
 # Luminary Monorepo 改造计划
 
-> 状态：**执行中**（结构改造已开工）
+> 状态：**Phase 1–5 已完成**（结构改造已落地并逐阶段提交）；Phase 6 待定项未决
 > 前置阅读：`2026-09-28-docs-site-rollout-plan.md`（文档站落地，已完成）
 
 ## 一、背景：Luminary 的定位变了
@@ -101,7 +101,7 @@ packages/{eslint-config,typescript-config,ui}
 Luminary/                        # monorepo 根
 ├── pnpm-workspace.yaml          # packages: apps/* + packages/*；allowBuilds 已存在
 ├── package.json                 # 根：仅编排脚本，无应用依赖
-├── turbo.json                   # 任务图与缓存
+├── turbo.jsonc                  # 任务图（用 jsonc 承载约束说明）
 ├── apps/
 │   ├── site/                    # 官网 + 文档站（静态）
 │   ├── personal/                # 个人网站（静态）
@@ -137,56 +137,100 @@ Luminary/                        # monorepo 根
 
 ## 四、迁移阶段
 
-> **前置条件**：`2026-09-28-docs-site-rollout-plan.md` 的 CI 已在真实 runner 上验证通过。
-> 理由：本次迁移会改动 `pnpm build`、CI、`.gitignore`、`verify:docs` 的路径假设。
-> 若 CI 本身从未验证过，出错时分不清是迁移问题还是 CI 问题。
+> **状态（2026-09-28）**：Phase 1–5 **已完成并逐阶段提交**；Phase 6 未开工（待 §8.2/§8.3）。
+>
+> | Phase | 提交 | 结果 |
+> |---|---|---|
+> | 1 workspace 骨架 | `48a96cb` | 站点移入 `apps/site`，路径推导改为标记文件向上找 |
+> | 2 拆分同步脚本 | `933db42` | 589 行 → 12 个单一职责模块，输出逐字一致 |
+> | 3 packages 与 Turbo | `7802245` | `packages/sync` 成为首个共享包 |
+> | 4 personal 骨架 | `8fa59b2` | 独立静态 app |
+> | 5 workbench 骨架 | `9a86a91` | SSR app + Tauri 壳 |
+
+### 关于 Phase 1 的验收标准（**已修正**）
+
+原定"产物与迁移前**逐文件 SHA256 一致**"。**实测该标准不可达**：
+
+同一份源码**连续构建两次**，4739 个文件里 6950 行 hash 不同。根因有两处，
+都与源码无关：
+
+1. **内容哈希文件名与 buildId**：Turbopack 每轮生成不同的 chunk 名与 buildId。
+2. **Shiki 语法高亮的颜色会跳**：代码块的 `--shiki-light` 在 `#032F62` 与
+   `#005CC5` 之间变化，是高亮器并发渲染的竞态。
+
+**修正后的验收方式**：比对前把 buildId、chunk 名、Shiki 颜色归一化，
+再比路径集合与内容。归一后同源构建**完全一致**（已实测），
+因此该方式既能抓住真实变化，又不会把构建器的非确定性当成迁移失败。
+
+> 未把该比对做成脚本入库：它是一次性验收工具，长期价值低于维护成本。
+> **真正该长期守的是"页面集合与内容不意外变化"**，而那由 `verify:docs`
+> 的分区计数与浏览抽查承担。
 
 ### Phase 1：workspace 骨架（不移动任何应用的内容）
 
 - 扩充 `pnpm-workspace.yaml` 为 `packages: [apps/*, packages/*]`
 - 根 `package.json` 只保留编排脚本，应用依赖下沉
 - 建立 `apps/` 并把现有内容整体移入 `apps/site/`（`git mv`，保留历史）
-- **修正仓库根推导**：`sync-docs.ts` / `verify-docs.ts` 原先用 `resolve(scriptDir, '..')`
-  推导仓库根，移入 `apps/site/` 后会指向 `apps/`，需改为按 workspace 根推导
-- **验收**：`apps/site` 的 `pnpm build` 产物与迁移前**逐文件一致**（SHA256 全等）
+- **修正仓库根推导**：`sync-docs.ts` / `verify-docs.ts` / `lib/openapi.ts` 原先用
+  `resolve(here, '..')` / `resolve(process.cwd(), '..')` 推导根目录，移入 `apps/site/`
+  后会指向 `apps/`。改为**按标记文件向上找**（`pnpm-workspace.yaml` → monorepo 根，
+  `next.config.mjs` → app 根）
+- **验收**：`sync:docs` 输出逐字一致（写入 420 篇 / 跳过 1 / 导航 24 / compodoc 899）；
+  `verify:docs` 通过；`build` 成功且页面集合一致
 
-> 这一步只动位置，不动内容。先证明"搬家不影响构建"，再谈别的。
+> **`.gitignore` 是这一步的隐藏坑**：原规则带前导斜杠（`/out/`、`/content/docs/lucent/`），
+> 锚定的是仓库根。app 移入 `apps/site/` 后**全部失效**，且失效是静默的——
+> 产物与构建期副本会以"未跟踪文件"的形态出现，看起来像残留。
+> 已把根 `.gitignore` 改为不锚定的目录名匹配。
 
 ### Phase 2：拆分 `sync-docs.ts`（见 §6.2）
 
-- 按职责拆成 `scripts/sync/{rules,walk,frontmatter,escape,rewritelinks,nav,compodoc}.ts`
-- **验收**：同步输出**逐字一致**；`verify:docs` 通过；负向测试仍退出码 1
+- 按职责拆成 `sync/` 下的 12 个模块（入口 44 行）
+- **验收**：同步输出**逐字一致**（40 行全等）；`verify:docs` 通过；
+  负向测试（移走一个手写页）仍退出码 1 ✅
 
 > 纯重构，不改行为。放在搬家之后，基线已稳定，可逐字对比。
 
 ### Phase 3：抽出 `packages/` 与引入 Turbo
 
 - 把拆好的同步/门禁脚本迁到 `packages/sync`，作为**首个真实共享包**
-- 建立 `turbo.json`，根脚本改为 `turbo run <task>`
-- `packages/sync` 的脚本需从"相对 `__dirname` 猜仓库根"改为**显式接收 workspace 根**
-- **验收**：`pnpm build`、`pnpm ci:docs` 经 Turbo 跑通且产物不变；
-  重复执行命中缓存（第二次 < 5 秒）
+- 建立 `turbo.jsonc`（用 jsonc 承载约束说明），根脚本改为 `turbo run <task>`
+- `packages/sync` 不再猜 app 位置：目标 app 根由调用方传入
+  （命令行参数 → `LUMINARY_APP_ROOT` → 缺省 `apps/site`）
+- **验收**：`pnpm build`、`pnpm ci:docs` 经 Turbo 跑通；重复执行命中缓存 ✅
+
+> ⚠️ **`sync:docs` 只能由一个包声明**。迁移中 `@luminary/sync` 与 `@luminary/site`
+> 都声明了它，Turbo 视为两个独立任务并**并发执行**，两个进程同时对同一目录
+> `rmdir` → `EPERM: operation not permitted`。
+> 现由 `apps/site` 单独声明：它才是"文档站在哪"的知情者，`packages/sync` 是库。
 
 ### Phase 4：建立 personal
 
 - 新建 `apps/personal`，沿用 site 的技术栈基线
 - 与 site 之间**不共享组件**（叙事不同，强行共享会互相牵制）
-- **验收**：独立构建、独立产物
+- **验收**：独立构建、独立产物（`apps/personal/out/`，21 个文件）✅
 
 ### Phase 5：建立 workbench 骨架（不含业务功能）
 
 - 新建 `apps/workbench`，**不带** `output: 'export'`
-- 加 `src-tauri/` 壳
-- **验收**：`next build` 走 SSR 产物；Tauri 能打出空壳窗口
+- 加 `src-tauri/` 壳（Tauri v2 配置 + `lib.rs` / `main.rs` + 占位图标）
+- 加 `/ssr-probe` 页：`force-dynamic` 输出请求时间，把"SSR 真的生效"变成可观测事实
+- **验收**：`next build` 产出 `/ssr-probe` 为 `ƒ (Dynamic)`，且**不产生 `out/`** ✅
+- **未验收**：Tauri 打空壳窗口——需要 Rust 工具链，本机未装。
+  **壳的形态已固定，能构建性未验证**，这一条留给 Phase 6 或功能集计划。
 
 > 本阶段**只搭骨架**。工作台的功能集是独立计划（ADR-0008 第 22 行：
 > "0.1.0 发布后启动桌面 MVP"），不在本计划内。
+
+> ⚠️ **SSR 与 Tauri 尚未打通**：SSR 需要常驻 Node 进程，不能像纯静态站点那样
+> 让 `frontendDist` 直接指向 HTML 目录。落地方式（sidecar 进程 vs 指向外部服务）
+> 属于功能集计划，本骨架**不做决定，也不假装已解决**。
 
 ### Phase 6：路由与部署编排
 
 - 决定 zone 之间的路由方式（见 §八 待定）
 - 每个 zone 配 `assetPrefix`，互不冲突
-- CI 扩展为按 app 分别构建
+- CI 扩展为按 app 分别构建（当前 `docs.yml` 只跑 `site`）
 - **验收**：三个 app 的产物可同时部署且互不覆盖
 
 > ⚠️ 跨 zone 链接必须用 `<a>` 而非 `<Link>`：Next.js 的 `<Link>` 会尝试
@@ -314,38 +358,49 @@ ADR-0008 修订时发现的活跃文档冲突**已同步更正**，现行文档�
 
 ```
 scripts/
-├── sync-docs.ts          # 入口：编排 + 报告（目标 < 120 行）
-├── verify-docs.ts        # 门禁（已存在）
-├── audit-links.ts        # 断链普查（已存在）
-└── sync/
-    ├── rules.ts          # 路径映射表 + 单篇重命名
-    ├── walk.ts           # 目录遍历、文件收集
-    ├── frontmatter.ts    # front-matter 规整
-    ├── escape.ts         # MDX 转义
-    ├── rewritelinks.ts   # §6.1 的链接重写
-    ├── nav.ts            # copyNav + assertCopiesIgnored
-    └── compodoc.ts       # compodoc 拷贝
+**实际落位**（`packages/sync/src/`，拆分与迁移分两步提交）：
+
 ```
+packages/sync/src/
+├── sync-docs.ts      # 入口：解析路径 → sync() → 打印（44 行）
+├── verify-docs.ts    # 门禁
+├── audit-links.ts    # 断链普查
+├── context.ts        # 路径推导 + SyncContext（包内不猜 app 位置）
+├── rules.ts          # 路径映射表 + 单篇重命名（变更频率最高）
+├── run.ts            # 编排顺序与计数
+├── page.ts           # 单篇组装：front-matter + 转义
+├── frontmatter.ts    # front-matter 解析/重建（纯函数）
+├── escape.ts         # MDX 转义（纯函数）
+├── walk.ts           # 目录遍历
+├── nav.ts            # copyNav + assertCopiesIgnored
+├── compodoc.ts       # compodoc 拷贝
+├── report.ts         # 计数与告警，注入式传递
+└── output.ts         # 控制台输出格式
+```
+
+> 与原方案差一处：`rewritelinks.ts`（§6.1 的链接重写）**未建**。
+> 该功能与目录映射强相关，映射稳定前建它必然返工；模块位置已留好。
 
 **拆分原则**：
 - **不改行为**：纯搬迁，现有同步输出（`写入 420 篇，跳过 1 篇，导航 24 个，compodoc 899 个`）
-  必须逐字一致
+  逐字一致 ✅
 - **每个模块单一职责**，输入输出用显式参数传递，不依赖全局常量
-- 保持现有约定：**TypeScript only**（无 JS 产物），`node scripts/sync-docs.ts` 直接跑
+  （`SyncContext` 取代原先的文件级常量）
+- 保持现有约定：**TypeScript only**（无 JS 产物），`node src/sync-docs.ts` 直接跑
 
 #### 与 Phase 1 的关系
 
 **拆分在 Phase 1（workspace 骨架）之后进行**，作为 **Phase 2**。
-理由：Phase 1 只做"搬家 + 修正路径推导"，改动越少越容易验证产物逐字一致；
-拆分是纯重构，放在搬家之后、有稳定基线可对比时做，责任边界更清楚。
+理由：Phase 1 只做"搬家 + 修正路径推导"，改动越少越容易验证；拆分是纯重构，
+放在搬家之后、有稳定基线可对比时做，责任边界更清楚。
 
 #### 验收
 
-- 拆分后 `pnpm sync:docs` 输出与拆分前**逐字一致**
-- `pnpm verify:docs` 通过
-- `pnpm build` 成功
-- 负向测试：移走一个手写页 → 门禁仍退出码 1
-- 拆分产物落位 `packages/sync`（见 Phase 3），不再是 app 私有脚本
+- 拆分后 `pnpm sync:docs` 输出与拆分前**逐字一致**（40 行全等）✅
+- `pnpm verify:docs` 通过 ✅
+- `pnpm build` 成功 ✅
+- 负向测试：移走一个手写页 → 门禁仍退出码 1 ✅
+- 拆分产物落位 `packages/sync`（见 Phase 3），不再是 app 私有脚本 ✅
 
 ## 七、明确不做的事
 
@@ -418,6 +473,14 @@ multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路�
   与 `public/compodoc/`，被缓存跳过会导致"产物看起来在、其实是上一轮的"。
 - `build` 的 `outputs` 必须声明。Turbo 靠它做缓存复用，漏了就只有"跳过"没有"恢复"。
 - `verify:docs` 依赖 `sync:docs` 而非反过来——门禁校验的是同步结果。
+- `ci:docs` 要**显式**依赖 `sync:docs`：否则 `build` 可能与它并发
+  （`build` 读 `content/`，而 `sync:docs` 正在清空重写），表现为**偶发**失败。
+- **`sync:docs` 只能由一个包声明**。若库与 app 都声明，Turbo 视为两个独立任务并
+  并发执行，两个进程对同一目录 `rmdir` → `EPERM`（迁移中实际踩到）。
+
+> 配置用 `turbo.jsonc` 而非 `turbo.json`：这些约束**必须写在配置旁边**，
+> 否则下一个改动的人只会看到一份"为什么这些 flag 长这样"无从判断的 JSON。
+> Turbo 2.11 只认 `turbo.json` / `turbo.jsonc`，**不支持** `turbo.config.mjs`（已实测）。
 
 ### 9.3 `packages/` 的首个包
 
@@ -427,22 +490,31 @@ multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路�
 |---|---|
 | 为什么是它 | 与渲染/构建完全解耦；`site` 与根编排都要用；迁移风险最低 |
 | 形态 | 内部包，`"private": true`，无构建步骤（Node 24 直接跑 `.ts`） |
-| 定位 | 所有路径由**调用方显式传入 workspace 根**，包内不猜目录 |
+| 定位 | **不猜 app 位置**：目标 app 根由调用方传入（参数 → 环境变量 → 缺省 `apps/site`） |
+| 不声明任务 | 只暴露代码；会写盘的 `sync:docs` 等任务由 `apps/site` 声明（见 §9.2 末条） |
 
 **仍然不抽的**：UI 组件、设计 token、eslint/tsconfig 预设。
 三个 app 同栈，抽共享 UI 属于"先建后拆"；等第二处真实重复再抽。
+
+> `apps/personal` 与 `apps/workbench` 当前各自复制了一份 `tsconfig.json` /
+> `postcss.config.mjs` / `eslint.config.mjs`。这是**刻意**的：抽 `packages/config`
+> 属于上一条"仍然不抽"的范围，等第三个同配置出现、或配置开始分叉时再抽。
 
 ## 十、风险
 
 | 风险 | 影响 | 应对 |
 |---|---|---|
-| 迁移破坏已完成的文档站 | 文档站刚验收完毕，返工成本高 | Phase 1 以「产物逐文件一致」为硬验收 |
+| 迁移破坏已完成的文档站 | 文档站刚验收完毕，返工成本高 | Phase 1 以「同步输出逐字一致 + 页面集合一致」为验收（原「逐文件 SHA256」不可达，见 §四） |
 | multi-zones 的硬跳转 | 官网→文档若跨 zone 会有整页重载 | 已将二者并入同一 zone（§2.2） |
 | `assetPrefix` 配置错误 | 静态资源 404 | 每个 zone 独立构建后逐一验证资源路径 |
 | 根 `package.json` 与 app 依赖混淆 | 依赖提升导致构建行为变化 | 根只放编排脚本，应用依赖不下沉到根 |
-| 迁移期间 `content/` 同步脚本路径失效 | `sync:docs` / `verify:docs` 写死相对仓库根的路径 | Phase 1 同步修正两个脚本的仓库根推导并复跑门禁 |
+| 迁移期间 `content/` 同步脚本路径失效 | 写死相对仓库根的路径 | **已改为按标记文件向上找**，不再数层级 |
 | Turbo 缓存掩盖副作用 | `sync:docs` 被判为命中，产物停留在上一轮 | 该任务显式 `cache: false`；门禁只信 `pnpm ci:docs` 全跑 |
+| `.gitignore` 前导斜杠锚定失效 | 产物与构建期副本变成"未跟踪文件"，看起来像残留 | 根 `.gitignore` 改为不锚定；`assertCopiesIgnored()` 自检兜底 |
+| pnpm 的 peer 后缀解析不一致 | 新 app 的 `next` 软链指向不存在的 store 条目，报「'next' is not recognized」 | 删 `node_modules` + lock 全新安装（**改配置无效**，是 store 索引陈旧） |
 
-> **路径推导是实际最高频的坑**：`scripts/sync-docs.ts` 与 `scripts/verify-docs.ts`
-> 都用 `resolve(scriptDir, '..')` 推导仓库根。移入 `apps/site/` 后该推导会指向
-> `apps/`。**Phase 1 必须一并处理并复跑门禁。**
+> **路径推导是实际最高频的坑**：原 `sync-docs.ts` / `verify-docs.ts` /
+> `lib/openapi.ts` 分别用 `resolve(scriptDir, '..')` 与 `resolve(process.cwd(), '..')`
+> 推导根目录。移入 `apps/site/` 后全部指向 `apps/`，且**不报错**——
+> 表现为"去错目录找内容"。**已全部改为按标记文件向上找。**
+> 新代码不要退回数层级的写法。
