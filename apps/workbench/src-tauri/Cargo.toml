@@ -1,0 +1,23 @@
+[package]
+name = "workbench"
+version = "0.1.0"
+description = "Luminous 桌面工作台外壳"
+edition = "2021"
+rust-version = "1.77"
+
+# 库名带下划线：`main.rs` 用 `workbench_lib::run()` 引用它。
+# 不用 `workbench` 是为了避免与包名同名时在 Windows 上的链接歧义。
+[lib]
+name = "workbench_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+
+[features]
+# 由 `tauri build` 在需要时启用（自定义协议等）
+custom-protocol = ["tauri/custom-protocol"]

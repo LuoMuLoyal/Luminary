@@ -9,11 +9,7 @@
     "./verify-docs": "./src/verify-docs.ts",
     "./audit-links": "./src/audit-links.ts"
   },
-  "scripts": {
-    "sync:docs": "node src/sync-docs.ts",
-    "verify:docs": "node src/verify-docs.ts",
-    "audit:links": "node src/audit-links.ts"
-  },
+  "scripts": {},
   "engines": {
     "node": ">=24"
   }

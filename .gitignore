@@ -78,3 +78,8 @@ apps/site/public/compodoc/
 # 构建产物快照（本机比对用，换机器/Node 版本后 chunk 名本就不同）
 .out-snapshot/
 
+
+# Rust / Tauri 构建产物
+apps/workbench/src-tauri/target/
+apps/workbench/src-tauri/gen/
+

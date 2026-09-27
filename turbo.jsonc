@@ -1,0 +1,52 @@
+// Turbo 任务图。
+//
+// ## 为什么用 Turbo 而不是 Nx
+//
+// 任务是「三个 app 各自构建 + 一组文档校验」。没有插件生态、生成器、
+// 模块边界强制的需求。Turbo 只做两件事：按依赖图排序、按输入哈希缓存，
+// 这恰好是需要的全部。
+//
+// ## 三条不明显的约束（都踩过）
+//
+// ### 1. sync:docs / verify:docs / ci:docs 必须 cache: false
+//
+// 它们不是纯函数：sync:docs 会先 rm -rf 目标目录再写 content/docs/ 与
+// public/compodoc/。若被缓存跳过，会出现「产物看起来在、其实是上一轮的」，
+// 比直接失败更难发现。
+//
+// ### 2. sync:docs 只能由一个包声明
+//
+// 曾经 @luminary/sync（包自身）与 @luminary/site（app）都声明了 sync:docs，
+// Turbo 视为两个独立任务并**并发执行**，两个进程同时对同一目录 rmdir，
+// 报 EPERM: operation not permitted。
+//
+// 现在只由 apps/site 声明——它才是「文档站在哪」的知情者；
+// packages/sync 是库，只暴露代码，不声明会写盘的任务。
+//
+// ### 3. ci:docs 要显式依赖 sync:docs
+//
+// 否则 build 可能与 sync:docs 并发：build 读 content/，而 sync:docs 正在
+// 清空重写它，表现为**偶发**的构建失败或内容缺失。
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["out/**", ".next/**", "!.next/cache/**"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "sync:docs": {
+      "cache": false
+    },
+    "verify:docs": {
+      "dependsOn": ["sync:docs"],
+      "cache": false
+    },
+    "ci:docs": {
+      "dependsOn": ["sync:docs", "verify:docs", "build"],
+      "cache": false
+    }
+  }
+}
