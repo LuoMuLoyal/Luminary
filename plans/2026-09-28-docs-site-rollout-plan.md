@@ -317,15 +317,46 @@ ARB 占位符原文时，MDX 会把它当 JSX 表达式求值，构建报
 但 Phase 5 的门禁范围已定为「同步成功 + 构建成功 + 计数一致」，
 而构建本身就会拦住这类错误（只是报错信息不够友好），故暂不加独立检查。
 
-### Phase 5：CI 与发布
+### Phase 5：CI 与发布 —— ✅ 已完成
 
-- 增加「两仓文档变更 → 站点重建」的触发路径。
-  因**同步内容不进 git**，构建必须能读到两仓工作区 → CI 需同时 checkout `Luminary`、
-  `Luminous`、`Lucent` 三个仓库。
-- 门禁范围：`pnpm sync:docs` 成功、`pnpm build` 成功、同步后的文件数与源计数一致。
-  **不做全站死链校验**（见 §四「关于相对链接」）。
-- 构建耗时需实测：compodoc 899 个文件的拷贝与 Next 静态导出的规模效应。
-- ✅ **产物体积：已实测，结论是「不构成阻塞，但 CDN 必须开 Brotli」**。
+- ✅ **本地门禁脚本** `scripts/verify-docs.ts`（`pnpm verify:docs`），检查三件事：
+  1. 两仓工作区可读（`Luminous` / `Lucent` 必须与本站同级）
+  2. 十个同步分区各自达到最小篇数（抓「规则失效导致整段丢失」）
+  3. 九个手写页存在（它们不在同步流程里，最容易被误删）
+
+  设计取舍：**最小篇数留余量、不锁精确值**。文档会持续新增，门禁的职责是抓整段丢失，
+  不是锁死计数。精确计数由 `sync:docs` 自己打印供人核对。
+
+  **不跑 `pnpm build`**：构建是最慢的一步，拆开后可以先花几秒拿到「内容对不对」的结论，
+  再决定是否付构建的时间成本。
+
+- ✅ **一键命令** `pnpm ci:docs` = `sync:docs && verify:docs && build`，CI 直接调用它。
+
+- ✅ **CI workflow** `.github/workflows/docs.yml`：三仓平铺 checkout
+  （`Luminary` / `Luminous` / `Lucent`，顺序即 `sync-docs.ts` 的目录假设），
+  Node 24 + pnpm 缓存，跑 `pnpm ci:docs`，末尾输出产物体积摘要到 Step Summary。
+
+- 验收（已实测）：
+  - 完整链 `pnpm ci:docs` 退出码 0：同步 420 篇 / 导航 23 个 / compodoc 899 个 → 门禁通过 → 构建成功。
+  - **门禁有效性做了负向测试**（不做负向测试的门禁等于没有）：
+    移走 `manual/mine.mdx` → 退出码 1 并指名该文件；
+    移走 `lucent/adr/` → 退出码 1 并报「Lucent ADR -1 篇（≥18）」；恢复后复检通过。
+- 提交：`ci(luminary): 文档站门禁与构建流水线`。
+
+#### Phase 5 待办（**非本次范围**）
+
+- **CI 尚未在真实 runner 上跑过**：本仓库没有配置 git remote，也无从验证
+  `actions/checkout` 能否取到兄弟仓库。若 `Luminous` / `Lucent` 是私有仓库，
+  需要配置 `DOCS_PAT` secret（workflow 里已写成 `secrets.DOCS_PAT || github.token`，
+  取不到时 `continue-on-error` 不直接失败，而是让 `verify:docs` 报出
+  「找不到 Luminous/Lucent 工作区」这条更可操作的诊断）。
+- **跨仓触发尚未接上**：GitHub 的 `on.push.paths` 只作用于本仓库，
+  没法在同一个 workflow 里监听兄弟仓库的文档变更。要真正做到「文档一改站点就重建」，
+  需要在 `Luminous` / `Lucent` 各加一个在文档路径变更时发 `repository_dispatch` 的
+  workflow，本站再监听该事件。**该项需要改动另两个仓库，超出本次范围，留待后续。**
+- **发布（部署到 devluo.com/luminous/docs）**：域名与备案已完成，
+  但部署目标（CDN / 静态托管）与 `out/` 的上传方式尚未定。
+  **发布时务必确认 CDN 开启 Brotli**，理由见下方体积实测。
 
   Phase 1/2 曾把体积归因于「每页内联完整侧边栏」，**该归因是错的**：实测侧边栏
   （`<aside>`）只占单页 **7%**。真实原因是 **RSC 载荷**——`self.__next_f` 内联的数据
