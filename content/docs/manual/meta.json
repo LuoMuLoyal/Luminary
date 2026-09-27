@@ -1,0 +1,14 @@
+{
+  "title": "使用教程",
+  "pages": [
+    "index",
+    "---五个主 Tab---",
+    "today",
+    "record",
+    "medicine",
+    "review",
+    "mine",
+    "---按功能---",
+    "medicine-reminder"
+  ]
+}
