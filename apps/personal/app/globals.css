@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/**
+ * 个人网站的基础样式。
+ *
+ * 刻意保持最小：本 app 的定位是"我是谁、我做过什么"的展示叙事，
+ * 视觉与 site（产品官网）**独立**，不共享组件与设计 token——
+ * 强行共享会让两套叙事互相牵制（见 monorepo 计划 §三 分区判据）。
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  margin: 0;
+}
