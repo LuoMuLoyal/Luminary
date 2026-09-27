@@ -236,6 +236,18 @@ content/docs/
 因此导航源文件放在 **`content/nav/`**（提交进 git），由脚本在同步末尾复制到 `content/docs/`；
 复制产物已在 `.gitignore` 中排除。
 
+**⚠️ 新增导航分区时必须同步在 `.gitignore` 里加一条忽略规则。**
+
+`copyNav()` 递归遍历整个 `content/nav/`，所以新增任何分区（如 `api/`、`errors/`、`compodoc/`）
+都会自动在 `content/docs/` 下产生新的副本路径。漏加规则**不会报错**，只会让这些构建期副本
+以「未跟踪文件」的形态出现在 `git status` 里 —— 看起来像是忘了清理的残留，实际是机制没配对。
+
+已在 `sync-docs.ts` 里加自检 `assertCopiesIgnored()`：复制完成后逐个问
+`git check-ignore`，任何一条没被忽略就**硬失败**并打印具体路径。
+用 git 本身判定而不是自己解析 `.gitignore`（后者要处理取反、锚定、嵌套，容易写错）。
+已做负向测试：临时新建 `content/nav/_probe/` → 同步退出码 1 并指名
+`content\docs\_probe\index.mdx`。
+
 
 ### Phase 3：API 参考、错误码与 compodoc —— ✅ 已完成
 
