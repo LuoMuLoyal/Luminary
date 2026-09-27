@@ -237,18 +237,58 @@ content/docs/
 复制产物已在 `.gitignore` 中排除。
 
 
-### Phase 3：API 参考、错误码与 compodoc
+### Phase 3：API 参考、错误码与 compodoc —— ✅ 已完成
 
-- 引入 `fumadocs-openapi`，从 `Lucent/docs/reference/generated/openapi.json` 生成 `content/docs/api/`。
-- **手写 `content/docs/errors/`**：RFC 9457 错误码参考。信息源为
-  `Lucent/src/common/api/problem-catalog.ts` 的头注释与 ADR-0012，
-  但**以手写维护**（不做自动提取），错误码变更时人工同步。
-  注意这偏离了两仓「可生成内容不手写」的约定，是显式接受的取舍。
-- 拷贝 compodoc 产物到 `public/compodoc/`，在文档站给出入口链接。
-  **注意**：767 个 HTML 体积较大（见 Phase 5 的构建影响）。
-- 验收：API 参考页列出全部端点与 schema；错误码页与 `problem-catalog.ts` 当前内容一致；
-  compodoc 入口可访问。
+- ✅ **API 参考**：`fumadocs-openapi` 从 `Lucent/docs/reference/generated/openapi.json`
+  产出 **143 个端点页**，按 spec 的 tag 分为 **23 组**（Auth 19、Reports 17、User Health
+  Context 11、Assistant 11、Account 10……），URL 形如 `/luminous/docs/api/auth/<operation>`。
+- ✅ **错误码页**：`content/docs/errors/index.mdx` 手写，覆盖全部 **32 个错误码**、
+  出站兜底规则（10 条 status→code 映射）、`SseProblemDetails` 的额外 `status` 字段。
+- ✅ **compodoc**：整目录拷贝 **899 个文件**（767 HTML + 资源）到 `public/compodoc/`，
+  文档站入口页在 `/luminous/docs/compodoc`，已验证可跳到真实的 "Lucent Architecture" 页。
+- 验收（已实测）：API 页渲染出端点路径与 HTTP 方法，侧边栏按 tag 分组；
+  错误码页 10 张表、`RECORD_ALREADY_EXISTS` 等全部在列；`pageErrors` 为空。
 - 提交：`feat(luminary): 生成 API 参考并补错误码与 compodoc 入口`。
+
+#### Phase 3 踩坑记录
+
+1. **`generateFiles()` 不能用在静态导出站**。它写出的 143 个 `.mdx` 里，每个都内嵌
+   `_openapi.preload` 指向 **spec 的绝对路径**（实测
+   `D:\...\Lucent\docs\reference\generated\openapi.json`）。CI 上路径必然不同，产物不可移植；
+   且这些文件还要再 gitignore 一遍。**改用虚拟页面**：`openapi.staticSource()` 在构建期读 spec，
+   路径只出现在 `lib/openapi.ts` 一处，磁盘上不落任何生成物。
+
+2. **`openapiPlugin()` 只装饰、不建页**。它给已有页面加 HTTP 方法标签与 deprecated 删除线，
+   真正的页面由 `staticSource()` 提供，**两者必须一起用**。只挂 plugin 时侧边栏不会出现 API 分区。
+
+3. **`staticSource()` 必须传 `baseDir`**。不传的话 143 个页面的 URL 是
+   `/luminous/docs/<operationName>`（实测），直接与普通文档同级平铺；传 `baseDir: 'api'`
+   之后才是 `/luminous/docs/api/<operationName>`。
+
+4. **`groupBy: 'tag'` 决定侧边栏可用性**。不分组时 143 个端点在侧边栏平铺，读者无法按模块定位；
+   分组后是 23 个可折叠分组。
+
+5. **不要调 `preloadOpenAPIPage()`**。它读页面数据上的 `_openapi.preload`，而
+   `getVirtualFiles()` 写进虚拟页的 `_openapi` 只有 `{ method, webhook, deprecated }`，
+   **没有 `preload` 键**（fumadocs-openapi 12.0.3）。于是它返回 `{ preloaded: { docs: {} } }`，
+   而 `<OpenAPIPage />` 要求 `preloaded.docs[document]` 存在，两边对不上就抛
+   `the document ... is not preloaded`。虚拟页的 `getOpenAPIPageProps()` 已带
+   `payload.bundled`（spec 全文），走 `OpenAPIPageProps_Spec` 分支，本就不需要 preload。
+   preload 是给 `generateFiles()` 生成的 .mdx 用的（spec 在页外，才需预加载）。
+
+6. **`createOpenAPIPage()` 必须在客户端模块调用**。它是 client function，在服务端组件里调用会报
+   `Attempted to call createOpenAPIPage() from the server`。故拆出 `components/openapi-page.tsx`
+   带 `'use client'`，再由 `components/mdx.tsx` 转出。
+
+7. **compodoc 产物里带 Angular 源码**。`public/compodoc/template-playground/*.ts` 依赖
+   `@angular/*`，本站不安装。不排除的话 `next build` 的类型检查会去编译它们并报一堆
+   `Cannot find module '@angular/core'`。已在 `tsconfig.json` 的 `exclude` 中排除
+   `public/compodoc`（同时排除 `out`、`.next`）。
+
+8. **类型收窄**：`source.getPage()` 在合并两个来源后返回 `Page<'docs'> | Page<'openapi'>` 联合，
+   而 `preloadOpenAPIPage` 的签名要求单一 `Type`，故分流必须在分支内做。
+   `getOpenAPIPageProps` 由 plugin 运行时注入、宏类型未声明，故在 `getOpenApiProps()` 内做一次
+   收敛断言（不用 `any` 扩散）。
 
 ### Phase 4：使用手册
 
@@ -264,13 +304,39 @@ content/docs/
   `Luminous`、`Lucent` 三个仓库。
 - 门禁范围：`pnpm sync:docs` 成功、`pnpm build` 成功、同步后的文件数与源计数一致。
   **不做全站死链校验**（见 §四「关于相对链接」）。
-- 构建耗时需实测：compodoc 767 个 HTML 的拷贝与 Next 静态导出的规模效应。
-- ⚠️ **产物体积需在发布前决策（Phase 1/2 实测）**：`out/` 当前 **315.6 MB / 2600 文件**，
-  其中文档 HTML **303 MB**。原因是每页都内联完整侧边栏（430 条链接的页面树），
-  单页 HTML 达 **630–720 KB**（最大的 `archive/2026-07/2026-07-10.html` 为 720 KB）。
-  影响三处：CDN 存储与回源成本、首屏 HTML 传输（gzip 后仍可观）、CI 构建与上传耗时。
-  可选缓解（按代价从低到高）：开启 CDN Brotli、给 `archive`/`logs` 页面关掉全量侧边栏、
-  对归档做分页或惰性加载侧边栏。**该项不阻塞 Phase 1/2 验收，但发布前必须定调。**
+- 构建耗时需实测：compodoc 899 个文件的拷贝与 Next 静态导出的规模效应。
+- ✅ **产物体积：已实测，结论是「不构成阻塞，但 CDN 必须开 Brotli」**。
+
+  Phase 1/2 曾把体积归因于「每页内联完整侧边栏」，**该归因是错的**：实测侧边栏
+  （`<aside>`）只占单页 **7%**。真实原因是 **RSC 载荷**——`self.__next_f` 内联的数据
+  占单页 **88%**。其中 API 页再叠加一份：`payload.bundled` 把 570 KB 的 spec 全文
+  序列化进**每一个** API 页（实测单页内联 script 达 577 KB，最大一块 365 KB 就是 spec）。
+
+  | 分区 | 文件数 | 磁盘体积 |
+  | --- | --- | --- |
+  | `luminous/docs/**`（非 api） | 2560 | 417.3 MB |
+  | `luminous/docs/api/**` | 858 | 297.8 MB |
+  | `compodoc/**` | 899 | 61.6 MB |
+  | `_next/**` | 361 | 13.7 MB |
+  | 其他 | 25 | 11.1 MB |
+  | **合计** | **4703** | **801.6 MB** |
+
+  **但这些体积不等于传输体积**。实测 Brotli 压缩率约 **10%**（RSC 载荷是高重复 JSON，
+  压缩收益极大）：
+
+  | 页面 | 原始 | Brotli |
+  | --- | --- | --- |
+  | `api/auth/createGoogleAuthorizeUrl` | 664 KB | 67 KB |
+  | `archive/2026-07/2026-07-10` | 802 KB | 78 KB |
+  | `errors` | 324 KB | 35 KB |
+
+  全站 1341 个 HTML 共 281 MB → Brotli 后约 **28 MB**。结论：**首屏传输可接受，
+  不需要为体积改架构**；代价落在 CDN 存储/回源与 CI 上传耗时上。
+  发布时**必须确保 CDN 开启 Brotli（或 gzip）**，否则单页 800 KB 的裸传输才会成为问题。
+
+  可选但非必需的优化（按代价从低到高）：CDN 缓存策略调优、对 `archive`/`logs` 关掉全量侧边栏、
+  归档分页。**均不作为发布阻塞项。**
+
 - 已知无害噪声：静态导出下 Next 会请求 `__next.<hash>.txt?_rsc=...` 形式的 RSC
   预取载荷，产物里实际是 `__next._full.txt` / `__next._tree.txt`，故这些预取请求 404。
   页面渲染与导航不受影响（已实测），属 Next 16 静态导出的既有行为，非本次改动引入。
