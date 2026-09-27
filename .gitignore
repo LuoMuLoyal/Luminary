@@ -1,8 +1,13 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# ⚠️ 本文件是 **monorepo 根** 的忽略规则，覆盖 `apps/*` 与 `packages/*`。
+# 原先按仓库根锚定的规则（`/out/`、`/content/docs/...`）在 app 移入 `apps/site/` 后
+# **全部失效**——前导 `/` 锚定的是本文件所在目录。故这里统一改为按目录名匹配，
+# 不写前导 `/`，让各 app 的产物与副本在任何层级都被忽略。
+
 # dependencies
-/node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -11,14 +16,18 @@
 !.yarn/versions
 
 # testing
-/coverage
+coverage/
 
-# next.js
-/.next/
-/out/
+# next.js 产物（每个 app 各自一份）
+.next/
+out/
 
 # production
-/build
+build/
+
+# turbo 本地缓存与日志
+.turbo/
+.turbo-cache/
 
 # misc
 .DS_Store
@@ -41,13 +50,13 @@ yarn-error.log*
 next-env.d.ts
 
 # fumadocs-mdx 生成的类型/入口
-/.source
+.source/
 
-# 同步自两仓的内容（见规划 §4.4；是否提交见 §9 待定项）
-/content/docs/luminous/
-/content/docs/lucent/
+# 同步自两仓的内容（见文档站规划 §4.4；是否提交见 §9 待定项）
+apps/site/content/docs/luminous/
+apps/site/content/docs/lucent/
 
-# 由 sync:docs 从 content/nav/ 复制到 content/docs/ 的副本（见 scripts/sync-docs.ts 的 copyNav）。
+# 由 sync:docs 从 content/nav/ 复制到 content/docs/ 的副本（见 packages/sync 的 copyNav）。
 #
 # 规则针对的是**复制目标位置**，与内容是手写还是生成无关：
 #   content/nav/**        源文件 → 提交进 git
@@ -55,11 +64,17 @@ next-env.d.ts
 #
 # ⚠️ 新增导航分区时**必须同步在这里加一条**。copyNav 会复制 content/nav/ 下的任意路径，
 # 漏加规则不会报错，只是让构建期副本出现在 git status 里，看起来像"残留"。
-/content/docs/meta.json
-/content/docs/index.mdx
-/content/docs/api/
-/content/docs/errors/
-/content/docs/compodoc/
+#
+# 这一约束由 `packages/sync` 的 `assertCopiesIgnored()` 自检：漏了规则就明确报错。
+apps/site/content/docs/meta.json
+apps/site/content/docs/index.mdx
+apps/site/content/docs/api/
+apps/site/content/docs/errors/
+apps/site/content/docs/compodoc/
 
 # compodoc 产物（Lucent 生成，整体搬运到 public/ 作外链）
-/public/compodoc/
+apps/site/public/compodoc/
+
+# 构建产物快照（本机比对用，换机器/Node 版本后 chunk 名本就不同）
+.out-snapshot/
+

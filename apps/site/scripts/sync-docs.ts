@@ -26,13 +26,47 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/**
+ * 路径推导——**不要用 `resolve(here, "../../..")` 这种数层级的写法**。
+ *
+ * monorepo 改造把这个文件从仓库根挪到了 `apps/site/scripts/`，
+ * 原先的 `resolve(here, "..")` 立刻指到了 `apps/site`，而它当仓库根用。
+ * 数层级的问题是：**层级一改，错误是静默的**——它不会报错，只会去错目录找内容，
+ * 表现为"同步成功但内容为空"或门禁说分区不存在。
+ *
+ * 因此改成**按标记文件向上找**：
+ *   - `appRoot`  = 最近的含 `next.config.mjs` 的祖先目录（即 app 自己）
+ *   - `repoRoot` = 最近的含 `pnpm-workspace.yaml` 的祖先目录（即 monorepo 根）
+ *
+ * 这样既支持 `apps/site/scripts/`（当前形态），也支持脚本日后迁到
+ * `packages/sync/` 的情形——不需要再改这里。
+ */
+function findUp(start: string, marker: string): string {
+  let dir = start;
+  for (;;) {
+    if (existsSync(join(dir, marker))) return dir;
+    const parent = resolve(dir, "..");
+    if (parent === dir) {
+      throw new Error(
+        `从 ${start} 向上找不到标记文件 ${marker}。\n` +
+          `  该标记用于推导 monorepo 根目录；若目录结构变了，请同步更新本函数。`,
+      );
+    }
+    dir = parent;
+  }
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, "..");
+/** monorepo 根（含 pnpm-workspace.yaml）——同级仓库 Luminous / Lucent 在这里。 */
+const repoRoot = findUp(here, "pnpm-workspace.yaml");
+/** 本站 app 根（含 next.config.mjs）——content/ 与 public/ 在这里。 */
+const appRoot = findUp(here, "next.config.mjs");
+/** 同级仓库所在目录：monorepo 的上一级。 */
 const workspaceRoot = resolve(repoRoot, "..");
 
 const LUMINOUS = join(workspaceRoot, "Luminous");
 const LUCENT = join(workspaceRoot, "Lucent");
-const CONTENT = join(repoRoot, "content", "docs");
+const CONTENT = join(appRoot, "content", "docs");
 
 /** 一条同步规则：从 `from` 取文件，按 `to` 前缀落到 content/docs 下。 */
 interface Rule {
@@ -477,7 +511,7 @@ async function sync(): Promise<Report> {
  */
 async function copyCompodoc(): Promise<number> {
   const from = join(LUCENT, "docs", "reference", "generated", "compodoc");
-  const to = join(repoRoot, "public", "compodoc");
+  const to = join(appRoot, "public", "compodoc");
 
   await rm(to, { recursive: true, force: true });
   if (!existsSync(from)) return 0;
@@ -502,7 +536,7 @@ async function copyCompodoc(): Promise<number> {
  * 而不是让人对着 `git status` 猜。
  */
 async function copyNav(): Promise<number> {
-  const navRoot = join(repoRoot, "content", "nav");
+  const navRoot = join(appRoot, "content", "nav");
   if (!existsSync(navRoot)) return 0;
 
   let count = 0;
@@ -526,9 +560,11 @@ async function copyNav(): Promise<number> {
  * 也不要留下一个只有靠人肉眼才能发现的静默不一致。
  */
 async function assertCopiesIgnored(): Promise<void> {
-  const navRoot = join(repoRoot, "content", "nav");
+  const navRoot = join(appRoot, "content", "nav");
   if (!existsSync(navRoot) || !existsSync(join(repoRoot, ".git"))) return;
 
+  // 报告路径要相对 **git 仓库根**（repoRoot），而不是 appRoot——
+  // app 已移到 apps/site/，用户看到的报错应当是可以直接去 .gitignore 里找的路径。
   const copies = (await walk(navRoot, true)).map((file) =>
     relative(repoRoot, join(CONTENT, relative(navRoot, file))),
   );
@@ -551,7 +587,8 @@ async function assertCopiesIgnored(): Promise<void> {
     throw new Error(
       `content/nav/ 复制出的这些文件没有被 .gitignore 忽略：\n` +
         notIgnored.map((f) => `  ${f}`).join("\n") +
-        `\n\n请在 .gitignore 里补上对应目录（它们是构建期副本，不该提交）。`,
+        `\n\n请在 monorepo 根的 .gitignore 里补上对应目录（它们是构建期副本，不该提交）。\n` +
+        `  注意：monorepo 根的规则**不要写前导斜杠**，否则锚定的是仓库根而不是 app 目录。`,
     );
   }
 }

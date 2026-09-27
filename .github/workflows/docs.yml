@@ -4,10 +4,10 @@ name: docs
 #
 # ## 为什么要 checkout 三个仓库
 #
-# 本站内容**不进 git**：`content/docs/{luminous,lucent}` 由 `pnpm sync:docs`
-# 从同级工作区读出来（见 scripts/sync-docs.ts）。所以构建机必须同时能读到
+# 本站内容**不进 git**：`apps/site/content/docs/{luminous,lucent}` 由 `pnpm sync:docs`
+# 从同级工作区读出来（见 apps/site/scripts/sync-docs.ts）。所以构建机必须同时能读到
 # `Luminary`、`Luminous`、`Lucent` 三个仓库，且目录层级必须是平的
-# （`sync-docs.ts` 用 `resolve(repoRoot, '..')` 找同级仓库）。
+# （脚本按标记文件向上找 monorepo 根，再取上一级作为工作区根）。
 #
 # ## 触发范围
 #
@@ -89,6 +89,7 @@ jobs:
         working-directory: Luminary
 
       # 同步 + 门禁 + 构建，三步串行；任一步非 0 即整步失败。
+      # monorepo 改造后由根编排脚本驱动（根 ci:docs → turbo → apps/site）。
       - name: 同步、门禁与构建
         run: pnpm ci:docs
         working-directory: Luminary
@@ -104,5 +105,6 @@ jobs:
           echo "| 体积 | $(du -sh out | cut -f1) |" >> $GITHUB_STEP_SUMMARY
           echo "| HTML 页数 | $(find out -name '*.html' | wc -l) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> 体积为未压缩值。实测 Brotli 压缩率约 10%，发布时 CDN 必须开启 Brotli，详见规划 Phase 5。" >> $GITHUB_STEP_SUMMARY
-        working-directory: Luminary
+          echo "> 体积为未压缩值。实测 Brotli 压缩率约 10%，发布时 CDN 必须开启 Brotli，详见规划 Phase 6。" >> $GITHUB_STEP_SUMMARY
+        # app 已移入 apps/site/，产物在 apps/site/out。
+        working-directory: Luminary/apps/site

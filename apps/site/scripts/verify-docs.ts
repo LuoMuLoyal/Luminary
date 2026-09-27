@@ -20,13 +20,36 @@ import { readdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/**
+ * 路径推导——与 `sync-docs.ts` 同规则：**按标记文件向上找，不数层级**。
+ * 见该文件顶部的说明（monorepo 改造把脚本从仓库根挪到了 `apps/site/scripts/`，
+ * 原先的 `resolve(here, "..")` 会静默指错）。
+ */
+function findUp(start: string, marker: string): string {
+  let dir = start;
+  for (;;) {
+    if (existsSync(join(dir, marker))) return dir;
+    const parent = resolve(dir, "..");
+    if (parent === dir) {
+      throw new Error(
+        `从 ${start} 向上找不到标记文件 ${marker}。\n` +
+          `  该标记用于推导 monorepo 根目录；若目录结构变了，请同步更新本函数。`,
+      );
+    }
+    dir = parent;
+  }
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, "..");
+/** monorepo 根——同级仓库 Luminous / Lucent 在它的上一级。 */
+const repoRoot = findUp(here, "pnpm-workspace.yaml");
+/** 本站 app 根——content/ 与 public/ 在这里。 */
+const appRoot = findUp(here, "next.config.mjs");
 const workspaceRoot = resolve(repoRoot, "..");
 
 const LUMINOUS = join(workspaceRoot, "Luminous");
 const LUCENT = join(workspaceRoot, "Lucent");
-const CONTENT = join(repoRoot, "content", "docs");
+const CONTENT = join(appRoot, "content", "docs");
 
 /** 一个必须存在的同步分区：目标目录 + 期望的最少篇数。 */
 interface Expectation {
@@ -143,7 +166,7 @@ console.log("手写页：");
 for (const r of manualRows) console.log(r);
 
 // compodoc 是外链入口，缺了入口页仍可用，但应在
-if (!existsSync(join(repoRoot, "public", "compodoc", "index.html"))) {
+if (!existsSync(join(appRoot, "public", "compodoc", "index.html"))) {
   console.log(
     "\n提示：public/compodoc/index.html 不存在，compodoc 入口会指向空页面。" +
       "\n  跑一次 `pnpm sync:docs` 即可（它负责拷贝 compodoc 产物）。",
