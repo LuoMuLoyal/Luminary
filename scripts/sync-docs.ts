@@ -459,6 +459,9 @@ async function sync(): Promise<Report> {
   // 若把它们直接写在 content/docs/ 里，每次同步都会被 rm 掉。
   report.navCopied = await copyNav();
 
+  // 自检：复制出来的路径必须都在 .gitignore 里，否则新增导航分区会静默留下未跟踪文件。
+  await assertCopiesIgnored();
+
   // compodoc 产物（Lucent 的 API 文档站）整体拷到 public/ 下作外链入口。
   report.compodocCopied = await copyCompodoc();
 
@@ -489,7 +492,15 @@ async function copyCompodoc(): Promise<number> {
   return files.length;
 }
 
-/** 把 content/nav/** 原样复制到 content/docs/**，返回复制文件数。 */
+/**
+ * 把 content/nav/** 原样复制到 content/docs/**，返回复制文件数。
+ *
+ * ⚠️ `content/docs/` 下的副本必须在 `.gitignore` 里逐条忽略（与 `luminous/`、`lucent/`
+ * 一样），否则它们会以「未跟踪文件」的形态出现在 `git status` 里，看起来像残留。
+ * 这里递归遍历整个 `content/nav/`，所以**新增任何导航分区都会自动产生新的副本路径**。
+ * 为此下面调用 `assertCopiesIgnored()` 做一次自检：漏了规则就明确报错，
+ * 而不是让人对着 `git status` 猜。
+ */
 async function copyNav(): Promise<number> {
   const navRoot = join(repoRoot, "content", "nav");
   if (!existsSync(navRoot)) return 0;
@@ -503,6 +514,46 @@ async function copyNav(): Promise<number> {
     count++;
   }
   return count;
+}
+
+/**
+ * 校验 content/nav/ 复制出的每个目标路径都被 git 忽略。
+ *
+ * 用 `git check-ignore` 判定——直接问 git 本身，而不是自己解析 `.gitignore`
+ * （后者要处理取反、嵌套、锚定等一堆规则，容易写错）。
+ *
+ * 任何一条没被忽略就抛错。这是**故意的硬失败**：宁可让同步看起来"失败"，
+ * 也不要留下一个只有靠人肉眼才能发现的静默不一致。
+ */
+async function assertCopiesIgnored(): Promise<void> {
+  const navRoot = join(repoRoot, "content", "nav");
+  if (!existsSync(navRoot) || !existsSync(join(repoRoot, ".git"))) return;
+
+  const copies = (await walk(navRoot, true)).map((file) =>
+    relative(repoRoot, join(CONTENT, relative(navRoot, file))),
+  );
+
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const run = promisify(execFile);
+
+  const notIgnored: string[] = [];
+  for (const rel of copies) {
+    try {
+      // check-ignore 对被忽略的路径返回 0，未忽略返回 1
+      await run("git", ["check-ignore", "-q", rel], { cwd: repoRoot });
+    } catch {
+      notIgnored.push(rel);
+    }
+  }
+
+  if (notIgnored.length > 0) {
+    throw new Error(
+      `content/nav/ 复制出的这些文件没有被 .gitignore 忽略：\n` +
+        notIgnored.map((f) => `  ${f}`).join("\n") +
+        `\n\n请在 .gitignore 里补上对应目录（它们是构建期副本，不该提交）。`,
+    );
+  }
 }
 
 const report = await sync();
