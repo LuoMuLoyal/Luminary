@@ -53,15 +53,34 @@ export interface SyncContext {
 }
 
 /**
- * 按**脚本自身位置**推导出全部路径。
+ * 推导 monorepo 根（含 `pnpm-workspace.yaml`）。
  *
- * 脚本当前在 `apps/site/scripts/sync/`，但本函数不假设这个层级——
- * 两个标记文件各自向上找，因此脚本日后迁到 `packages/sync/` 也不用改。
+ * 本包在 `packages/sync/`，**不是**任何 app 的子目录，所以从这里向上找
+ * `next.config.mjs` 是找不到的（app 根必须由调用方显式传入）。
+ * 这也是把脚本移出 app 的必然代价：包不能猜"我要同步到哪个 app"。
  */
-export function createContext(scriptDir: string): SyncContext {
-  const repoRoot = findUp(scriptDir, "pnpm-workspace.yaml");
-  const appRoot = findUp(scriptDir, "next.config.mjs");
+export function findRepoRoot(scriptDir: string): string {
+  return findUp(scriptDir, "pnpm-workspace.yaml");
+}
+
+/**
+ * 组装一次同步所需的全部路径。
+ *
+ * @param scriptDir 本包内任一入口文件所在目录（用于定位 monorepo 根）
+ * @param appRoot   目标 app 的根目录（含 `content/` 与 `public/`）。
+ *                  **必须显式传入**——本包不假设自己在哪个 app 里。
+ */
+export function createContext(scriptDir: string, appRoot: string): SyncContext {
+  const repoRoot = findRepoRoot(scriptDir);
   const workspaceRoot = resolve(repoRoot, "..");
+
+  if (!existsSync(join(appRoot, "next.config.mjs"))) {
+    throw new Error(
+      `目标 app 根目录里没有 next.config.mjs：${appRoot}\n` +
+        `  该参数指向"文档站所在目录"，用于定位 content/ 与 public/。\n` +
+        `  若 app 挪了位置，请更新调用方的参数（见各 app 的 package.json 脚本）。`,
+    );
+  }
 
   return {
     repoRoot,

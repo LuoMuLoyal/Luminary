@@ -36,9 +36,29 @@
  * 同步产物**不进 git**，可反复运行：每次先整体清空目标目录再写，
  * 保证源文件删除后站点不残留。
  */
-import { createContext, scriptDirOf } from "./sync/context.ts";
-import { printReport } from "./sync/output.ts";
-import { sync } from "./sync/run.ts";
+import { join, resolve } from "node:path";
 
-const ctx = createContext(scriptDirOf(import.meta.url));
-printReport(await sync(ctx));
+import { createContext, findRepoRoot, scriptDirOf } from "./context.ts";
+import { printReport } from "./output.ts";
+import { sync } from "./run.ts";
+
+/**
+ * 目标 app 根目录。
+ *
+ * 本包**不知道**自己在给哪个 app 同步内容（它不在任何 app 目录下），
+ * 所以目标必须由调用方给出，优先级：
+ *   1. 命令行：`node sync-docs.ts <appRoot>`
+ *   2. 环境变量：`LUMINARY_APP_ROOT`
+ *   3. 缺省：`<repoRoot>/apps/site`（当前唯一的静态 app）
+ *
+ * 给缺省值的理由：`pnpm sync:docs` 是最高频入口，每次都传路径很烦。
+ * 而"猜错了"的代价是**明确失败**而不是静默写错地方——
+ * `createContext` 会检查目标目录下有没有 `next.config.mjs`，没有就报错。
+ */
+const scriptDir = scriptDirOf(import.meta.url);
+const appRootArg = process.argv[2] ?? process.env.LUMINARY_APP_ROOT;
+const appRoot = appRootArg
+  ? resolve(appRootArg)
+  : join(findRepoRoot(scriptDir), "apps", "site");
+
+printReport(await sync(createContext(scriptDir, appRoot)));

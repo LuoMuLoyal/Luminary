@@ -12,7 +12,8 @@
       "cache": false
     },
     "verify:docs": {
-      "dependsOn": ["sync:docs"]
+      "dependsOn": ["sync:docs"],
+      "cache": false
     },
     "ci:docs": {
       "dependsOn": ["verify:docs", "build"],

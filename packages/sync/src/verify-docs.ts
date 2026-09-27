@@ -43,8 +43,15 @@ function findUp(start: string, marker: string): string {
 const here = dirname(fileURLToPath(import.meta.url));
 /** monorepo 根——同级仓库 Luminous / Lucent 在它的上一级。 */
 const repoRoot = findUp(here, "pnpm-workspace.yaml");
-/** 本站 app 根——content/ 与 public/ 在这里。 */
-const appRoot = findUp(here, "next.config.mjs");
+/**
+ * 本站 app 根——`content/` 与 `public/` 在这里。
+ *
+ * ⚠️ **不能**用 `findUp(here, "next.config.mjs")`：本包已移到 `packages/sync/`，
+ * 向上找不到 app。目标 app 与 `sync-docs.ts` 同规则由调用方给出
+ * （命令行参数 → `LUMINARY_APP_ROOT` → 缺省 `apps/site`）。
+ */
+const appRootArg = process.argv[2] ?? process.env.LUMINARY_APP_ROOT;
+const appRoot = appRootArg ? resolve(appRootArg) : join(repoRoot, "apps", "site");
 const workspaceRoot = resolve(repoRoot, "..");
 
 const LUMINOUS = join(workspaceRoot, "Luminous");

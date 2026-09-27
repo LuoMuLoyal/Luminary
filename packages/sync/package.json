@@ -1,0 +1,20 @@
+{
+  "name": "@luminary/sync",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "两仓文档同步与构建门禁（Node 24 原生跑 .ts，无构建步骤）",
+  "exports": {
+    "./sync-docs": "./src/sync-docs.ts",
+    "./verify-docs": "./src/verify-docs.ts",
+    "./audit-links": "./src/audit-links.ts"
+  },
+  "scripts": {
+    "sync:docs": "node src/sync-docs.ts",
+    "verify:docs": "node src/verify-docs.ts",
+    "audit:links": "node src/audit-links.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

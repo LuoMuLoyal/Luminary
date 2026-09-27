@@ -8,11 +8,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sync:docs": "node scripts/sync-docs.ts",
-    "verify:docs": "node scripts/verify-docs.ts",
+    "sync:docs": "node ../../packages/sync/src/sync-docs.ts",
+    "verify:docs": "node ../../packages/sync/src/verify-docs.ts",
+    "audit:links": "node ../../packages/sync/src/audit-links.ts",
     "ci:docs": "pnpm sync:docs && pnpm verify:docs && pnpm build"
   },
   "dependencies": {
+    "@luminary/sync": "workspace:*",
     "@gsap/react": "^2.1.2",
     "@types/mdx": "^2.0.14",
     "class-variance-authority": "^0.7.1",
