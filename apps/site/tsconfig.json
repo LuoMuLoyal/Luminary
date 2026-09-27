@@ -11,6 +11,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // scripts/ 里的同步脚本由 Node 24 直接执行（原生类型剥离，无打包步骤），
+    // Node 的 ESM 解析要求显式写 `.ts` 扩展名（只写 `./sync/run` 会 MODULE_NOT_FOUND）。
+    // 因此这里放开扩展名导入；对 next 侧代码没有影响（它们不写扩展名）。
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
