@@ -1,0 +1,22 @@
+{
+  "title": "计划",
+  "description": "在执行计划；完成即删，列表会变动",
+  "defaultOpen": false,
+  "collapsible": true,
+  "pages": [
+    "README",
+    "product-regulatory-positioning",
+    "2026-09-27-apache-age-introduction-plan",
+    "2026-09-17-local-embedding-model-selection",
+    "2026-09-16-lightrag-introduction-plan",
+    "2026-09-10-staging-native-pm2-traefik",
+    "2026-09-06-rag-hybrid-search-upgrade",
+    "2026-09-02-agentic-proactive-evolution",
+    "2026-08-29-acorn9-migration",
+    "2026-08-28-medicine-risk-graph-plan",
+    "2026-08-22-medium-to-large-migration-inventory",
+    "2026-08-14-saas-modules-and-node-monorepo",
+    "2026-08-02-rnacos-runtime-config-tuning",
+    "2026-07-24-worker-separation-and-cron-repeatable"
+  ]
+}

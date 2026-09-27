@@ -1,0 +1,15 @@
+{
+  "title": "归档",
+  "description": "只进不出的历史文档；按年月与主题分组",
+  "defaultOpen": false,
+  "collapsible": true,
+  "pages": [
+    "2026-08",
+    "2026-07",
+    "2026-06",
+    "2026-05",
+    "2026-08-31-doc-governance",
+    "product",
+    "specs"
+  ]
+}

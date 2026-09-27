@@ -1,0 +1,19 @@
+{
+  "title": "Luminous",
+  "description": "Flutter 客户端的项目文档",
+  "pages": [
+    "index",
+    "reference",
+    "product",
+    "explanation",
+    "howto",
+    "adr",
+    "features",
+    "generated",
+    "---归档与流水---",
+    "plans",
+    "logs",
+    "archive",
+    "todo"
+  ]
+}

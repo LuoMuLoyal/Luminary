@@ -1,0 +1,17 @@
+{
+  "title": "Lucent",
+  "description": "NestJS 后端的项目文档",
+  "pages": [
+    "index",
+    "reference",
+    "explanation",
+    "howto",
+    "adr",
+    "modules",
+    "---归档与流水---",
+    "plans",
+    "logs",
+    "archive",
+    "todo"
+  ]
+}

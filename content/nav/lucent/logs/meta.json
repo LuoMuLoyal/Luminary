@@ -1,0 +1,9 @@
+{
+  "title": "日志",
+  "description": "按日追加的迁移日志（永不覆写）",
+  "defaultOpen": false,
+  "collapsible": true,
+  "pages": [
+    "migration-log"
+  ]
+}

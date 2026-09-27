@@ -47,6 +47,10 @@ next-env.d.ts
 /content/docs/luminous/
 /content/docs/lucent/
 
+# 由 sync:docs 从 content/nav/ 复制生成的导航文件（源文件在 content/nav/，提交那一份）
+/content/docs/meta.json
+/content/docs/index.mdx
+
 # 生成的参考内容
 /content/docs/api/
 /content/docs/errors/
