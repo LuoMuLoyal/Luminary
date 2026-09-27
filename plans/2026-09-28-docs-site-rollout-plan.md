@@ -242,6 +242,10 @@ content/docs/
 - ✅ **API 参考**：`fumadocs-openapi` 从 `Lucent/docs/reference/generated/openapi.json`
   产出 **143 个端点页**，按 spec 的 tag 分为 **23 组**（Auth 19、Reports 17、User Health
   Context 11、Assistant 11、Account 10……），URL 形如 `/luminous/docs/api/auth/<operation>`。
+  **分区入口** `content/docs/api/index.mdx` 手写：说明契约链路与各 tag 的职责，
+  并给出「按 HTTP status + code 分支」等使用约定。
+  ⚠️ 注意 tag 分组目录本身没有 index 页（如 `/api/reports`），但**侧边栏从不链接到这一层**
+  （实测 tag 级链接数为 0），只能通过直敲 URL 触达，故不影响使用。
 - ✅ **错误码页**：`content/docs/errors/index.mdx` 手写，覆盖全部 **32 个错误码**、
   出站兜底规则（10 条 status→code 映射）、`SseProblemDetails` 的额外 `status` 字段。
 - ✅ **compodoc**：整目录拷贝 **899 个文件**（767 HTML + 资源）到 `public/compodoc/`，
