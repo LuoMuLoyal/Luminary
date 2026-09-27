@@ -290,12 +290,32 @@ content/docs/
    `getOpenAPIPageProps` 由 plugin 运行时注入、宏类型未声明，故在 `getOpenApiProps()` 内做一次
    收敛断言（不用 `any` 扩散）。
 
-### Phase 4：使用手册
+### Phase 4：使用手册 —— ✅ 已完成
 
-- 扩充 `content/docs/manual/`：现有 `medicine-reminder.mdx` 是唯一的真实教程页，
-  其余四个 Tab（今日 / 记录 / 回顾 / 我的）需要补齐。
-- 验收：五个 Tab 均有教程页，且只写用户可见的操作，不复制开发者文档。
-- 提交：`docs(luminary): 补全使用手册`。
+- ✅ `content/docs/manual/` 现有 **6 篇**：`index` + 五个主 Tab
+  （`today` / `record` / `medicine` / `review` / `mine`）+ 早先的 `medicine-reminder`。
+- ✅ 新增 `content/docs/manual/meta.json` 控制阅读顺序，用分隔符分为
+  「五个主 Tab」与「按功能」两段（此前该目录没有 meta.json，顺序只能按文件名排）。
+- 内容的**事实来源是 Flutter 的 ARB 文案**（`Luminous/lib/l10n/app_zh.arb`），
+  不是从代码结构推断的：每个功能点都能对应到具体的 l10n key。UI 上出现的中文
+  （如「加载失败，可重试」「今天已确认结果」「分享前先预览确认」）直接引用原文。
+- 验收（已实测）：五篇页面 `pageErrors` 为空，标题与章节数正常，侧边栏顺序为
+  今日 → 记录 → 用药 → 回顾 → 我的 → 用药提醒记录，两个分隔符均渲染。
+- 提交：`docs(luminary): 补全五个 Tab 的使用手册`。
+
+#### Phase 4 踩坑记录
+
+**手写 MDX 里的裸花括号会把构建打崩。** `sync-docs.ts` 对同步内容会自动做转义
+（`{` → `&#123;`），但**手写页面没有这道保护**。`record.mdx` 里写「&#123;日期&#125;」这种
+ARB 占位符原文时，MDX 会把它当 JSX 表达式求值，构建报
+`ReferenceError: 日期 is not defined`，且报错信息里不带文件名，定位成本不低。
+
+规避：手写页里凡是要**原样显示**的 `{...}`，一律写成 `&#123;...&#125;`。
+本次共 3 处（`record.mdx` 的 `日期`，`review.mdx` 的 `range` 与 `时间`）。
+
+**未决**：理想情况下应在 CI 里加一条「手写 MDX 不含裸花括号」的检查，
+但 Phase 5 的门禁范围已定为「同步成功 + 构建成功 + 计数一致」，
+而构建本身就会拦住这类错误（只是报错信息不够友好），故暂不加独立检查。
 
 ### Phase 5：CI 与发布
 
