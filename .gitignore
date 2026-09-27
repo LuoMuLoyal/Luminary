@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# fumadocs-mdx 生成的类型/入口
+/.source
+
+# 同步自两仓的内容（见规划 §4.4；是否提交见 §9 待定项）
+/content/docs/luminous/
+/content/docs/lucent/
+
+# 生成的参考内容
+/content/docs/api/
+/content/docs/errors/
+
+# compodoc 产物（W2）
+/public/compodoc/
