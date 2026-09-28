@@ -105,8 +105,22 @@ jobs:
           done
         working-directory: .
 
+      # ⚠️ 必须显式指定 package_json_file。
+      #
+      # 本 workflow 用 `path: Luminary` 把仓库 check out 到子目录，因此 runner 的
+      # 当前目录（`$GITHUB_WORKSPACE`）下**没有** package.json，只有 `Luminary/`。
+      # 而本 action 默认读 `package.json` 里的 `packageManager` 来定版本，
+      # 读不到就报「No pnpm version is specified」。
+      #
+      # 两条修法：① 这里指路径（采用）；② 写死 `version: 12`（与根 package.json 重复，
+      # 版本升级时会漂移，所以不采用）。
+      #
+      # personal.yml / desktop.yml 不需要这一项：它们 check out 到仓库根，
+      # 默认路径恰好正确。
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          package_json_file: Luminary/package.json
 
       - name: Setup Node
         uses: actions/setup-node@v4
