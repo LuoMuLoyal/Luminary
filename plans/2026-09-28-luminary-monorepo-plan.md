@@ -13,10 +13,14 @@
 | 1 | 官网 | 静态 | 潜在用户 | 静态导出 |
 | 2 | 文档站 | 静态 | 使用者 | 静态导出 |
 | 3 | 个人网站 | 静态 | 社团、其他团队、GitHub 访客 | 静态导出 |
-| 4 | Luminous 桌面端 | **SSR** | 使用者 | 认证、SSE、缓存 |
+| 4 | Luminous 桌面端 | 静态（Tauri 内嵌） | 使用者 | 认证、SSE、缓存——**由 Rust 层承担** |
+
+> ⚠️ 第 4 行原写作「**SSR**」。**该判断已被推翻**：Tauri 不支持基于服务端的方案，
+> 桌面端的"服务端"由 Rust 层承担，网页层仍是静态。详见 §8.6。
+> 本表其他行不受影响。
 
 1+2 是产品叙事（同一套导航与视觉），3 是"我是谁、我做过什么"的展示叙事，
-4 是登录后的工作台。**四者不是同一类东西，所以不能是一个 app。**
+4 是桌面客户端。**四者不是同一类东西，所以不能是一个 app。**
 
 ### 现状（迁移基线）
 
@@ -45,8 +49,12 @@ Next.js 官方 [Multi-Zones 指南](https://nextjs.org/docs/app/guides/multi-zon
 > `/dashboard/*` for all pages when the user is logged-in to the dashboard
 > `/*` for the rest of your website not covered by other zones
 
-"登录后的 dashboard" 就是"SSR 工作台"，与静态站**共存于同一域名**——
+"登录后的 dashboard" 就是"登录后的应用区"，与静态站**共存于同一域名**——
 这正是我们要的形态，也是官方推荐做法，而非变通。
+
+> ⚠️ 例子里 dashboard 是 SSR 的，但**本项目的桌面端不走这条**：
+> 它由 Tauri 内嵌分发，不占 HTTP 路由，见 §8.6。
+> 官方这个示例证明的是"分区可共存"，不是"桌面端该用 SSR"。
 
 官方同时明确：
 
@@ -68,7 +76,7 @@ Next.js 官方 [Multi-Zones 指南](https://nextjs.org/docs/app/guides/multi-zon
 |---|---|---|
 | 官网 ↔ 文档站 | **是**（看完介绍就点文档） | **同 zone** ✅ |
 | 官网/文档 ↔ 个人站 | 否（叙事完全不同） | 分开 ✅ |
-| 静态站 ↔ 工作台 | 否（工作台需登录） | 分开 ✅ |
+| 静态站 ↔ 桌面端 | 否（桌面端是独立应用，不走 HTTP 路由） | 分开 ✅ |
 
 **三个 zone 的划分与官方建议一致。**
 
@@ -105,8 +113,8 @@ Luminary/                        # monorepo 根
 ├── apps/
 │   ├── site/                    # 官网 + 文档站（静态）
 │   ├── personal/                # 个人网站（静态）
-│   └── workbench/               # 桌面工作台（SSR）
-│       └── src-tauri/           # Tauri 壳
+│   └── desktop/                 # 桌面客户端（静态，由 Tauri 打包）
+│       └── src-tauri/           # Tauri 壳（Rust 层承担"服务端"职责）
 └── packages/                    # 跨 app 共享
     └── sync/                    # 文档同步与门禁脚本（见 §四 Phase 3）
 ```
@@ -116,23 +124,36 @@ Luminary/                        # monorepo 根
 - **site**：官网与文档站共享导航、页脚、主题、`site.softwareName` 等站点元数据。
   且有大量互链（官网 → 文档），必须软跳转，故必须同 zone。
 - **personal**：展示叙事，导航与视觉独立。与 site 之间不常互访，独立 zone 无损。
-- **workbench**：唯一需要 SSR 的 app。与静态站无共享页面结构，
-  且在发布形态上完全不同（Tauri 打包 vs 静态上传）。
+- **desktop**：与静态站无共享页面结构，**分发方式**也完全不同
+  （Tauri 内嵌进安装包 vs 上传 CDN）。
 
-### `output` 字段按发布形态切换
+> **命名说明**：该项曾叫 `workbench`。改名理由不是"desktop 更好听"，
+> 而是原名与目录内容矛盾——`apps/` 下的命名维度是**交付形态**
+> （两个网页、一个桌面应用），`workbench` 却是个产品功能词。
+> 且"工作台"会与将来桌面端内部的多个"工作台式界面"混淆。
+
+### `output` 字段：**三个 app 都是静态导出**
 
 `output: 'export'` 是 **app 级**开关，不是架构分界：
 
-| app | 常态 | 说明 |
+| app | 常态 | 分发 |
 |---|---|---|
 | site | `output: 'export'` | 出 `out/`，上传 CDN |
 | personal | `output: 'export'` | 同上 |
-| workbench | 无该字段（默认 SSR） | `next start` / Tauri |
+| desktop | `output: 'export'` | 出 `out/`，由 Tauri 内嵌进安装包 |
 
-**两个静态 app 恒为静态导出**，不受 workbench 影响——这消除了"文档站被拖成 SSR"的担忧。
+**三个 app 恒为静态导出**，不存在"某个 app 被拖成 SSR"的问题。
+
+> ⚠️ **desktop 必须是静态，不是取舍而是硬约束**。Tauri 官方 Next.js 指南的
+> 清单第一条写死了：「用静态导出，设置 `output: 'export'`。**Tauri 不支持
+> 基于服务端的方案。**」（https://tauri.app/start/frontend/nextjs/）
+>
+> 骨架最初把 desktop 建成 **SSR**，理由是"认证态需要服务端"——**该判断错误
+> 且产物不可用**，要到打包那一刻才会暴露。桌面端的"服务端"由 **Rust 层**承担，
+> 不是 Node。详见 §8.6。
 
 > 早期讨论中曾以"必须拆两个 app 才能共存静态与 SSR"为由论证，
-> 该论证**不成立**：结论（拆 app）对，理由错。真正理由是**发布形态与叙事边界不同**，
+> 该论证**不成立**：结论（拆 app）对，理由错。真正理由是**分发形态与叙事边界不同**，
 > 见 §三「分区判据」。
 
 ## 四、迁移阶段
@@ -145,7 +166,7 @@ Luminary/                        # monorepo 根
 > | 2 拆分同步脚本 | `933db42` | 589 行 → 12 个单一职责模块，输出逐字一致 |
 > | 3 packages 与 Turbo | `7802245` | `packages/sync` 成为首个共享包 |
 > | 4 personal 骨架 | `8fa59b2` | 独立静态 app |
-> | 5 workbench 骨架 | `9a86a91` | SSR app + Tauri 壳 |
+> | 5 desktop 骨架 | `9a86a91` → `fa88952` | 先按 SSR 建；后**改为静态导出**并更名 `desktop`（见 §8.6） |
 
 ### 关于 Phase 1 的验收标准（**已修正**）
 
@@ -210,32 +231,50 @@ Luminary/                        # monorepo 根
 - 与 site 之间**不共享组件**（叙事不同，强行共享会互相牵制）
 - **验收**：独立构建、独立产物（`apps/personal/out/`，21 个文件）✅
 
-### Phase 5：建立 workbench 骨架（不含业务功能）
+### Phase 5：建立 desktop 骨架（不含业务功能）
 
-- 新建 `apps/workbench`，**不带** `output: 'export'`
-- 加 `src-tauri/` 壳（Tauri v2 配置 + `lib.rs` / `main.rs` + 占位图标）
-- 加 `/ssr-probe` 页：`force-dynamic` 输出请求时间，把"SSR 真的生效"变成可观测事实
-- **验收**：`next build` 产出 `/ssr-probe` 为 `ƒ (Dynamic)`，且**不产生 `out/`** ✅
-- **未验收**：Tauri 打空壳窗口——需要 Rust 工具链，本机未装。
-  **壳的形态已固定，能构建性未验证**，这一条留给 Phase 6 或功能集计划。
+- 新建 `apps/desktop`（初名 `workbench`），`output: 'export'` 静态导出
+- 加 `src-tauri/` 壳（Tauri v2 配置 + `lib.rs` / `main.rs` + `.ico` / `.png` 占位图标）
+- 按官方指南配 `frontendDist: "../out"`、`beforeDevCommand` / `beforeBuildCommand`、
+  以及**仅开发期**的 `assetPrefix`
+- **验收**：`next build` 出 `out/`（21 个文件）；`cargo check` / `cargo build` 通过；
+  **实际启动能创建窗口**（标题 `Luminous`）✅
 
-> 本阶段**只搭骨架**。工作台的功能集是独立计划（ADR-0008 第 22 行：
+> ⚠️ **原验收标准已推翻**。本阶段最初按 **SSR** 建，验收标准是"`/ssr-probe` 为
+> `ƒ (Dynamic)`、不产生 `out/`"——**该标准指向的是不可交付的产物**。
+> Tauri 不支持服务端方案，详见 §8.6。
+> 已移除：`/ssr-probe` 页、`next start` 脚本、SSR 版配置。
+> 该阶段是在 `fa88952` 修正完成的。
+
+> ⚠️ **Tauri 构建的两个硬要求**（都实际踩到，缺一即失败）：
+> 1. `src-tauri/icons/icon.ico` **必需**——`tauri-build` 生成 Windows Resource
+>    时强制要求，只给 `.png` 不够，报 "required for generating a Windows
+>    Resource file"。
+> 2. Cargo 侧必须有 `[package.metadata.tauri]`，否则报 "package.metadata does not exist"。
+>
+> 另：`tauri:*` 脚本需要 `tauri-cli`（`cargo install tauri-cli`），
+> **光有 Rust 工具链不够**。
+
+> 本阶段**只搭骨架**。功能集是独立计划（ADR-0008 第 22 行：
 > "0.1.0 发布后启动桌面 MVP"），不在本计划内。
-
-> ⚠️ **SSR 与 Tauri 尚未打通**：SSR 需要常驻 Node 进程，不能像纯静态站点那样
-> 让 `frontendDist` 直接指向 HTML 目录。落地方式（sidecar 进程 vs 指向外部服务）
-> 属于功能集计划，本骨架**不做决定，也不假装已解决**。
+> 具体未做：Rust 侧无任何业务命令（登录、拉数据、SSE 订阅），
+> 也没有 capabilities 权限白名单。
 
 ### Phase 6：路由与部署编排
 
-- 决定 zone 之间的路由方式（见 §八 待定）
+- 决定 zone 之间的路由方式（见 §8.2）
 - 每个 zone 配 `assetPrefix`，互不冲突
+- **跨域**：网页端若挂到 `devluo.com` 之外的域名，需同步扩展 `Lucent` 的
+  `CORS_ORIGIN` 白名单（见 §8.5）——**这是部署清单项，不是代码改动**
 - CI 扩展为按 app 分别构建（当前 `docs.yml` 只跑 `site`）
 - **验收**：三个 app 的产物可同时部署且互不覆盖
 
 > ⚠️ 跨 zone 链接必须用 `<a>` 而非 `<Link>`：Next.js 的 `<Link>` 会尝试
 > prefetch 并对相对路径做软跳转，跨 zone 不生效（见 Next.js multi-zones 指南
 > "Linking between zones"）。这条约束落在 Phase 6，但写组件时常会踩。
+>
+> ⚠️ 别把 Phase 6 的 `assetPrefix`（multi-zones 路径前缀）与 desktop 已有的
+> 那个（**仅开发期**，让 WebView 资源指回 `next dev`）混为一谈，两者目的无关。
 
 ## 五、需要修订的既有决策
 
@@ -410,7 +449,8 @@ packages/sync/src/
   它跨 app 复用且与构建无关，是最没有争议的一项。
 - **不引入 Nx**。只用 Turbo：任务是"构建 + 校验"，无 Nx 的插件/图/生成器需求。
 - **不动 `Lucent` 的仓库结构**。本计划全部改动限于 `Luminary`（外加 §五 的 ADR 文档）。
-- **不实现工作台业务功能**。仅搭骨架，功能集另行计划。
+  §8.5 已核实跨域无需改后端代码——只涉及部署时的 `CORS_ORIGIN` 环境变量。
+- **不实现桌面端业务功能**。仅搭骨架，功能集另行计划。
 - **不做 `personal` 的内容设计**。本计划只确定它的 app 边界与位置。
 - **不把行内代码形态的源码路径改成链接**（理由见 §6.1）。
 - **软著相关命名**暂不处理（见 §八）。
@@ -427,20 +467,86 @@ ADR-0008 **已就地修订**，路线为**已定**（Next.js + Tauri），客户
 ### 8.2 域名与路径划分（**Phase 6 前置，仍未定**）
 
 multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路径是
-`devluo.com/luminous/docs`。待定：官网、个人站、工作台各自用什么路径或域名。
+`devluo.com/luminous/docs`。待定：官网、个人站、桌面端各用什么路径或域名。
 
-- 子路径（`devluo.com/me`、`devluo.com/desktop`）→ 需要 rewrite 或代理
+- 子路径（`devluo.com/me`）→ 需要 rewrite 或代理
 - 独立域名 → 无需代理，但失去"同一站点"的观感
+- **桌面端不走 HTTP 路由**：产物被 Tauri 内嵌，不需要域名/路径划分
+
+> **本项的重要性已下降**：原以为网页端调 API 必须经代理绕开跨域，
+> 因而"托管方是否支持 rewrite"成了阻塞项。核实后该前提不成立（见 §8.5）。
+> 现在这里只剩纯路由问题。
 
 ### 8.3 托管方是否支持 rewrite（**Phase 6 前置**）
 
 §8.2 若选子路径，则需要在托管侧做路由代理。**需先确认对象存储 + CDN
 能否配置 rewrite 规则**；不能的话只能退回「各 zone 独立挂载」，方案随之调整。
 
+### 8.5 跨域：**已核实，后端无需改动**
+
+原计划担心网页端调 `Lucent` 需要代理层。**核实后该担心不成立**——
+`Lucent` 已实现 CORS，且生产环境已配好。
+
+| 位置 | 内容 |
+|---|---|
+| `Lucent/src/setup-app.ts` | `app.enableCors({ origin, methods: 'GET,HEAD,POST,PATCH,PUT,DELETE,OPTIONS' })` |
+| `Lucent/src/config/app.config.ts` | 解析 `CORS_ORIGIN`：空→不开；`*`→全开；逗号分隔→白名单 |
+| `.env.development` / `.env.test` | `CORS_ORIGIN=*` |
+| `.env.production` | `CORS_ORIGIN=https://devluo.com` |
+| `.env.production.example` | **注释掉**（默认不开） |
+
+因此三条结论：
+
+1. **`Lucent` 不用改代码**，这只是环境变量。原计划"不动 Lucent 结构"的声明**未打破**。
+2. **网页端直连可行**。认证用 JWT（`Authorization: Bearer`），不带 Cookie，
+   因此不需要 `Allow-Credentials`，也没有 `SameSite` 问题。
+3. **桌面端不受 CORS 约束**：请求由 Rust 层发出，不是浏览器发起的跨域请求。
+   推论：**桌面端可先于网页端上线**，不必等生产白名单调整。
+
+⚠️ **生产白名单目前只有 `https://devluo.com` 一条**。上线时：
+
+- `site` / `personal` 挂在 `devluo.com` 之下 → 现成可用
+- 分配到其他域名（如 `personal.devluo.com`）→ **必须加进 `CORS_ORIGIN`**。
+  漏了的表现是浏览器直接拦掉，而 **Lucent 日志里什么都看不到**（请求未发出），
+  排查方向极易被带偏——这不属于本仓库，必须在部署清单里显式列出。
+
+> `Lucent/docs/reference/environment-variables.md` 已说明「App-only 部署可不设
+> `CORS_ORIGIN`」，与本结论一致，无需改动该文档。
+
+### 8.6 桌面端的"服务端"由 Rust 承担（**已定**）
+
+骨架最初把 desktop 建成 **SSR**，理由是"认证态、SSE、服务端缓存需要 Node 进程"。
+**该判断错误，且产物不可交付**：Tauri 官方 Next.js 指南明确写
+「Tauri 不支持基于服务端的方案」，要求 `output: 'export'` +
+`frontendDist: "../out"`（https://tauri.app/start/frontend/nextjs/）。
+
+Next.js 侧的限制印证同一件事——启用 `output: 'export'` 后
+`cookies` / `headers` / `rewrites` / `redirects` / `proxy` / `Server Actions`
+全部不可用，文档明确理由是它们 "require a Node.js server"。
+**反过来说：在静态导出里做认证，认证就必须发生在 Next.js 之外。**
+桌面端有这个"之外"（Rust），纯网页端没有，故不能照搬。
+
+三层调用关系：
+
+```
+桌面端：  Web(静态) ──invoke──> Rust(Tauri) ──HTTPS──> Lucent
+网页端：  Web(静态) ──直连 + Bearer──> Lucent（受 CORS_ORIGIN 白名单约束）
+```
+
+桌面端走 Rust 的实际收益（**不只是绕开 CORS**）：
+
+- JWT 可存系统凭据库，WebView 里的脚本读不到 → **XSS 偷不走**
+- Rust 可在页面加载前注入会话状态，消除首屏"未登录"闪烁
+
+**由此产生的写码约束**（静态导出没有服务端）：
+
+- 页面一律按"未知态"渲染，登录态客户端异步取
+- **不能用 `redirect()` 做未登录跳转**——跳转由客户端路由或 Rust 层决定
+
 ### 8.4 其他
 
 - `lib/site.ts` 中的 `TODO（待定：软著软件全称）`：**保持现状**。
-  该项影响官网页脚、文档站标题、Tauri 打包名，晚定会导致多处返工，
+  该项影响官网页脚、文档站标题、桌面端打包名，晚定会导致多处返工，
   但按当前决定暂不处理。
 - **Lumos-docs 的退役**：它是本站的 VitePress 前身，功能已被 `Luminary` 完全覆盖。
   退役流程与时机不在本计划内，**建议等本计划 Phase 1 验收通过后再单独推进**。
@@ -456,14 +562,14 @@ multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路�
 ### 9.2 任务图
 
 ```jsonc
-// turbo.json
+// turbo.jsonc
 {
   "tasks": {
-    "build":     { "dependsOn": ["^build"], "outputs": ["out/**", ".next/**"] },
-    "lint":      { "dependsOn": ["^build"] },
-    "sync:docs": { "cache": false },          // 有副作用：写 content/ 与 public/
-    "verify:docs": { "dependsOn": ["sync:docs"] },
-    "ci:docs":   { "dependsOn": ["verify:docs", "build"] }
+    "build":      { "dependsOn": ["^build"], "outputs": ["out/**", ".next/**", "!.next/cache/**"] },
+    "lint":       { "dependsOn": ["^build"] },
+    "sync:docs":  { "cache": false },          // 有副作用：写 content/ 与 public/
+    "verify:docs": { "dependsOn": ["sync:docs"], "cache": false },
+    "ci:docs":    { "dependsOn": ["sync:docs", "verify:docs", "build"], "cache": false }
   }
 }
 ```
@@ -496,7 +602,7 @@ multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路�
 **仍然不抽的**：UI 组件、设计 token、eslint/tsconfig 预设。
 三个 app 同栈，抽共享 UI 属于"先建后拆"；等第二处真实重复再抽。
 
-> `apps/personal` 与 `apps/workbench` 当前各自复制了一份 `tsconfig.json` /
+> `apps/personal` 与 `apps/desktop` 当前各自复制了一份 `tsconfig.json` /
 > `postcss.config.mjs` / `eslint.config.mjs`。这是**刻意**的：抽 `packages/config`
 > 属于上一条"仍然不抽"的范围，等第三个同配置出现、或配置开始分叉时再抽。
 
@@ -505,8 +611,10 @@ multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路�
 | 风险 | 影响 | 应对 |
 |---|---|---|
 | 迁移破坏已完成的文档站 | 文档站刚验收完毕，返工成本高 | Phase 1 以「同步输出逐字一致 + 页面集合一致」为验收（原「逐文件 SHA256」不可达，见 §四） |
+| **Tauri 用 SSR 产物** | **打包阶段才暴露，产物直接不可交付** | desktop 必须 `output: 'export'`；见 §8.6。**已实际踩到** |
 | multi-zones 的硬跳转 | 官网→文档若跨 zone 会有整页重载 | 已将二者并入同一 zone（§2.2） |
 | `assetPrefix` 配置错误 | 静态资源 404 | 每个 zone 独立构建后逐一验证资源路径 |
+| **混淆两种 `assetPrefix`** | 生产期给 desktop 加前缀会让资源 404 | desktop 的那个**只在开发期**生效（`isProd ? undefined : ...`），见 §四 Phase 6 注 |
 | 根 `package.json` 与 app 依赖混淆 | 依赖提升导致构建行为变化 | 根只放编排脚本，应用依赖不下沉到根 |
 | 迁移期间 `content/` 同步脚本路径失效 | 写死相对仓库根的路径 | **已改为按标记文件向上找**，不再数层级 |
 | Turbo 缓存掩盖副作用 | `sync:docs` 被判为命中，产物停留在上一轮 | 该任务显式 `cache: false`；门禁只信 `pnpm ci:docs` 全跑 |
