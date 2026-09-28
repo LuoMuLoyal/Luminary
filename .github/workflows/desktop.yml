@@ -1,0 +1,142 @@
+name: desktop
+
+# 桌面客户端的构建门禁。
+#
+# ## 与另外两个 workflow 的差别
+#
+# 本 app 有两套构建：Next.js 前端 + Rust 后端，各自会失败。因此本 workflow
+# **分两个 job**，让失败定位到具体一侧，而不是混在一个日志里。
+#
+# ## 为什么只做 `cargo check` 而不做 `tauri build`
+#
+# `tauri build` 会产出安装包，涉及签名、密钥、平台矩阵与较长的编译时间；
+# 那是**发布流程**，不是每次 push 都该跑的。这里只验证"能编译、能过类型检查"。
+# 完整打包另做 release workflow（尚未建立）。
+#
+# ## Rust 缓存的必要性
+#
+# 不缓存 `src-tauri/target` 的话每次都要全量重编依赖（tauri 依赖树很大，
+# 冷编译在 CI 上要数分钟起）。`Swatinem/rust-cache` 按其约定需要指定
+# `workspaces: src-tauri`。
+#
+# ## 前端构建会受 `assetPrefix` 影响吗
+#
+# 不会。`next.config.mjs` 里的 `assetPrefix` 只在**非生产**下生效
+# （`isProd ? undefined : 'http://localhost:3002'`），CI 是 `NODE_ENV=production`，
+# 因此产物走相对路径——这正是 Tauri 内嵌所需的形态。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - "turbo.jsonc"
+      - ".github/workflows/desktop.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - "turbo.jsonc"
+      - ".github/workflows/desktop.yml"
+  workflow_dispatch:
+
+jobs:
+  frontend:
+    name: 前端构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter @luminary/desktop lint
+
+      # 静态导出必须成功——Tauri 不支持服务端方案（见 planning §8.6）。
+      # 若产物里出现 `.next/server` 而没有 `out/`，说明 output:'export' 被误删了。
+      - name: 构建（静态导出）
+        run: pnpm --filter @luminary/desktop build
+
+      - name: 校验产物形态
+        run: |
+          if [ ! -d out ]; then
+            echo "::error::未产出 out/ —— 桌面端必须是静态导出（output: 'export'）"
+            exit 1
+          fi
+          echo "out/ 文件数: $(find out -type f | wc -l)"
+        working-directory: apps/desktop
+
+      - name: 上传前端产物
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-out
+          path: apps/desktop/out
+          retention-days: 7
+
+  rust:
+    name: Rust 检查
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Linux 上编 tauri 需要 WebKitGTK 等系统库，否则 wry/tao 的构建脚本会失败。
+      # Tauri 官方在 CI 文档里列出的就是这些包。
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      # 缓存 target/，否则每次全量重编依赖
+      - name: 缓存 Rust 产物
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      # ⚠️ tauri-build 在本步骤会读 tauri.conf.json 并生成 Windows Resource 之类的
+      # 平台资源。Linux 上不需要 .ico，但 macOS 打包需要 .icns——若将来加 macOS 矩阵，
+      # 记得补 icons/icon.icns（当前只有 .ico / .png）。
+      - name: cargo check
+        run: cargo check --all-targets
+        working-directory: apps/desktop/src-tauri
+
+      - name: clippy
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: apps/desktop/src-tauri

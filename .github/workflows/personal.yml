@@ -1,0 +1,89 @@
+name: personal
+
+# 个人网站的构建门禁。
+#
+# ## 为什么不需要 checkout 兄弟仓库
+#
+# 本 app **不依赖** `packages/sync`，也不需要 `Luminous` / `Lucent` 的内容——
+# 它是完全自包含的静态站。这与 `site.yml` 形成对比（后者必须三仓平铺）。
+# 少这一步不只是省时间，也少一个失败源：兄弟仓库私有/网络抖动都不会拖垮本 app。
+#
+# ## 触发范围
+#
+# ⚠️ `paths` 是**白名单**语义，不写进去的路径不会触发。
+#
+# 本 workflow 与 `site.yml` / `desktop.yml` 的 `paths` **刻意不重叠**
+# （除根级共享配置外）：改了 personal 不该触发另外两个，反之亦然。
+#
+# 共同包含的根级项（`pnpm-lock.yaml` / `pnpm-workspace.yaml` / `package.json` /
+# `turbo.jsonc`）是有意为之：它们变化会影响**所有** app 的依赖解析与任务图。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/personal/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - "turbo.jsonc"
+      - ".github/workflows/personal.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/personal/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - "turbo.jsonc"
+      - ".github/workflows/personal.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: 构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # turbo 会按任务图跑；这里只涉及本 app，但走 turbo 保证与本地一致
+      - name: Lint
+        run: pnpm --filter @luminary/personal lint
+
+      - name: 构建
+        run: pnpm --filter @luminary/personal build
+
+      - name: 产物体积摘要
+        if: success()
+        run: |
+          echo "### 个人网站产物" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 项 | 值 |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| 文件数 | $(find out -type f | wc -l) |" >> $GITHUB_STEP_SUMMARY
+          echo "| 体积 | $(du -sh out | cut -f1) |" >> $GITHUB_STEP_SUMMARY
+        working-directory: apps/personal
+
+      - name: 上传产物
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: personal-out
+          path: apps/personal/out
+          retention-days: 7

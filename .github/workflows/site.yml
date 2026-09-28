@@ -1,35 +1,66 @@
-name: docs
+name: site
 
-# 文档站构建门禁（规划 §五 Phase 5）。
+# 官网 + 文档站的构建门禁。
 #
-# ## 为什么要 checkout 三个仓库
+# ## 为什么本 workflow 要 checkout 三个仓库
 #
 # 本站内容**不进 git**：`apps/site/content/docs/{luminous,lucent}` 由 `pnpm sync:docs`
-# 从同级工作区读出来（见 apps/site/scripts/sync-docs.ts）。所以构建机必须同时能读到
+# 从同级工作区读出来（见 `packages/sync/src/`）。所以构建机必须同时能读到
 # `Luminary`、`Luminous`、`Lucent` 三个仓库，且目录层级必须是平的
 # （脚本按标记文件向上找 monorepo 根，再取上一级作为工作区根）。
 #
+# 另外两个 app（personal / desktop）**不需要**这一步——它们不依赖 `packages/sync`。
+#
 # ## 触发范围
 #
-# 三仓的文档变更都应触发重建，但**无法用同一个 workflow 内的 paths 过滤器**跨仓库监听——
-# GitHub 的 `on.push.paths` 只作用于本仓库。故这里：
-#   - push / PR 到本仓库：全量跑（内容变没变都要能构建）
-#   - 三仓文档变更：由各仓库自己的 workflow 触发（见下方 repository_dispatch 说明）
+# 用 `paths` 过滤，只在本 app 或其依赖变化时触发。
 #
-# ## 门禁范围（规划已定，不含全站死链校验）
+# ⚠️ `paths` 里必须带上 `packages/sync/**` 与 `pnpm-lock.yaml`：
+#   - site 依赖 `@luminary/sync`（workspace 包），改 sync 就是改 site
+#   - 依赖树变了所有 app 都可能受影响；漏了会出现"改了依赖但 CI 不跑"
+#
+# ⚠️ `paths` 是**白名单**语义：不写进去的路径不会触发。新增根级配置文件时记得回来看这里。
+#
+# ## 门禁范围（不含全站死链校验）
 #
 #   1. `pnpm sync:docs`   —— 同步成功
 #   2. `pnpm verify:docs` —— 分区计数与手写页完整（防止静默少搬内容）
 #   3. `pnpm build`       —— 静态导出成功
 #
-# 不做死链校验：两仓文档里的相对链接按已决事项不处理（规划 §四），查死链必然误报。
+# 不做死链校验：两仓文档里的相对链接按已决事项不处理，查死链必然误报。
+#
+# ## 三仓文档变更如何触发
+#
+# GitHub 的 `on.push.paths` 只作用于**本仓库**，无法跨仓库监听。
+# 兄弟仓库的变更需由它们各自的 workflow 发 `repository_dispatch`（事件类型 `docs-updated`）
+# 触发本 workflow 的 `workflow_dispatch` / `repository_dispatch` 入口。
+# 该联动**尚未接线**（本仓库当前无 git remote，CI 未在真实 runner 上验证过）。
 
 on:
   push:
     branches: [main]
+    paths:
+      - "apps/site/**"
+      - "packages/sync/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - "turbo.jsonc"
+      - ".github/workflows/site.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "apps/site/**"
+      - "packages/sync/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - "turbo.jsonc"
+      - ".github/workflows/site.yml"
   workflow_dispatch:
+  # 供兄弟仓库（Luminous / Lucent）文档变更时触发；见上方说明
+  repository_dispatch:
+    types: [docs-updated]
 
 jobs:
   build:
@@ -38,8 +69,8 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # 三仓平铺 checkout：这是 sync-docs.ts 的目录假设，顺序不能变。
-      # 兄弟仓库若为私有，需配置 DOCS_PAT（见下方说明），默认用 GITHUB_TOKEN。
+      # 三仓平铺 checkout：这是路径推导的目录假设，顺序不能变。
+      # 兄弟仓库若为私有，需配置 DOCS_PAT，默认用 GITHUB_TOKEN。
       - name: Checkout Luminary
         uses: actions/checkout@v4
         with:
@@ -69,7 +100,7 @@ jobs:
             if [ -d "$d" ]; then
               echo "OK   $d"
             else
-              echo "缺失 $d —— 若为私有仓库，请配置 DOCS_PAT（见 workflow 顶部说明）"
+              echo "缺失 $d —— 若为私有仓库，请配置 DOCS_PAT"
             fi
           done
         working-directory: .
@@ -89,10 +120,6 @@ jobs:
         working-directory: Luminary
 
       # 同步 + 门禁 + 构建，串行；任一步非 0 即整步失败。
-      #
-      # ⚠️ 这里**只跑 site**，不是根 `pnpm ci:docs`：根脚本会带上 personal 与
-      # workbench，而本 workflow 的职责只是文档站。文档站的改动不该让另外两个
-      # app 的构建失败挡住（反之亦然）。
       - name: 同步、门禁与构建
         run: pnpm --filter @luminary/site ci:docs
         working-directory: Luminary
@@ -100,7 +127,7 @@ jobs:
       - name: 产物体积摘要
         if: success()
         run: |
-          echo "### 文档站产物" >> $GITHUB_STEP_SUMMARY
+          echo "### 站点产物" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| 项 | 值 |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
@@ -108,6 +135,14 @@ jobs:
           echo "| 体积 | $(du -sh out | cut -f1) |" >> $GITHUB_STEP_SUMMARY
           echo "| HTML 页数 | $(find out -name '*.html' | wc -l) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> 体积为未压缩值。实测 Brotli 压缩率约 10%，发布时 CDN 必须开启 Brotli，详见规划 Phase 6。" >> $GITHUB_STEP_SUMMARY
-        # app 已移入 apps/site/，产物在 apps/site/out。
+          echo "> 体积为未压缩值。实测 Brotli 压缩率约 10%，**CDN 必须开启 Brotli**。" >> $GITHUB_STEP_SUMMARY
         working-directory: Luminary/apps/site
+
+      # 产物交给部署环节；部署目标见规划 §8.2（对象存储 + CDN）
+      - name: 上传产物
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-out
+          path: Luminary/apps/site/out
+          retention-days: 7
