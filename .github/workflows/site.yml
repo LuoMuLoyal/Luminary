@@ -138,7 +138,22 @@ jobs:
           echo "> 体积为未压缩值。实测 Brotli 压缩率约 10%，**CDN 必须开启 Brotli**。" >> $GITHUB_STEP_SUMMARY
         working-directory: Luminary/apps/site
 
-      # 产物交给部署环节；部署目标见规划 §8.2（对象存储 + CDN）
+      # ⚠️ 这里校验的是 basePath 生效后的形态。若 assetPrefix 被误用（而非 basePath），
+      # 或 output:'export' 被删，这一步会失败——这两种错误只在部署时才暴露。
+      - name: 校验产物形态
+        if: success()
+        run: |
+          fail=0
+          [ -f out/luminous/index.html ] || { echo "::error::缺 out/luminous/index.html —— basePath 或 trailingSlash 未生效"; fail=1; }
+          [ -d out/_next ]             || { echo "::error::缺 out/_next"; fail=1; }
+          [ -f out/api/search.json ]   || { echo "::error::缺 out/api/search.json —— 构建收尾脚本未跑（见 finalize-export.ts）"; fail=1; }
+          [ -f out/luminous.html ]     && { echo "::error::out/luminous.html 不应存在 —— trailingSlash 未生效，线上会 404"; fail=1; }
+          exit $fail
+        working-directory: Luminary/apps/site
+
+      # 产物交给部署环节。
+      # ⚠️ 不能把 out/ 原样上传：out/_next 必须重映射到 /luminous/_next。
+      #    映射表见 docs/deployment.md。这里只存原始产物，映射由部署脚本负责。
       - name: 上传产物
         if: success()
         uses: actions/upload-artifact@v4

@@ -1,14 +1,26 @@
 /**
- * 个人网站——**独立静态导出**。
+ * 个人网站——**根路径应用**。
  *
- * ## 为什么没有 `assetPrefix`
+ * ## 站点拓扑（已定）
  *
- * multi-zones 里每个 zone 都要避开其他 zone 的静态资源路径。但本 app 是
- * **独立挂载**（独立域名/独立目录），不与 site 共用同一套 `/_next/` 路径，
- * 因此暂不需要 prefix。等 §8.2 的域名划分定了、且确认要与 site 同源挂载时再加。
+ * ```
+ * devluo.com/              → 本 app（占根路径）
+ * devluo.com/luminous      → site（官网）
+ * devluo.com/luminous/docs → site（文档站）
+ * ```
  *
- * ⚠️ 别把这里和 desktop 的 `assetPrefix` 混为一谈：desktop 那个只在**开发期**
- * 生效，用途是让 WebView 内的资源指回 `next dev`，与 multi-zones 的路径前缀无关。
+ * ## 为什么本 app **不需要** `assetPrefix`
+ *
+ * 本 app 占了根路径，在 multi-zones 的语义里是**默认应用**——
+ * 处理所有未被更具体 zone 匹配的路径。官方指南明确：
+ * 「The default application handling all paths not routed to another
+ * more specific zone does not need an `assetPrefix`.」
+ *
+ * 反过来，`site` 挂在 `/luminous` 下，它**必须**配 `assetPrefix: '/luminous'`，
+ * 否则它的 `/_next/` 会和本 app 的 `/_next/` 在根路径上撞车。
+ *
+ * ⚠️ 不要"为了对称"也给本 app 加前缀：那会让资源变成 `/<某前缀>/_next/...`，
+ * 而根路径下并不存在该前缀 → 全站资源 404。
  *
  * ## 为什么是 `output: 'export'`
  *

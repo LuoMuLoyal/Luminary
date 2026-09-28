@@ -1,7 +1,10 @@
 # Luminary Monorepo 改造计划
 
-> 状态：**Phase 1–5 已完成**（结构改造已落地并逐阶段提交）；Phase 6 待定项未决
+> 状态：**Phase 1–6 的代码部分已完成**（结构改造与路由配置已落地并逐阶段提交）；
+> 部署侧（上传脚本、对象存储配置）未做
 > 前置阅读：`2026-09-28-docs-site-rollout-plan.md`（文档站落地，已完成）
+>
+> 部署细节集中在 `docs/deployment.md`，本计划只保留决策与理由。
 
 ## 一、背景：Luminary 的定位变了
 
@@ -158,7 +161,8 @@ Luminary/                        # monorepo 根
 
 ## 四、迁移阶段
 
-> **状态（2026-09-28）**：Phase 1–5 **已完成并逐阶段提交**；Phase 6 未开工（待 §8.2/§8.3）。
+> **状态（2026-09-28）**：Phase 1–6 的**代码部分已完成并逐阶段提交**；
+> 部署侧（上传脚本、对象存储配置）未做。
 >
 > | Phase | 提交 | 结果 |
 > |---|---|---|
@@ -167,6 +171,7 @@ Luminary/                        # monorepo 根
 > | 3 packages 与 Turbo | `7802245` | `packages/sync` 成为首个共享包 |
 > | 4 personal 骨架 | `8fa59b2` | 独立静态 app |
 > | 5 desktop 骨架 | `9a86a91` → `fa88952` | 先按 SSR 建；后**改为静态导出**并更名 `desktop`（见 §8.6） |
+> | 6 路由与 CI | 见 §四 Phase 6 | `site` 用 `basePath` 挂 `/luminous`；CI 拆为三个 workflow |
 
 ### 关于 Phase 1 的验收标准（**已修正**）
 
@@ -262,19 +267,45 @@ Luminary/                        # monorepo 根
 
 ### Phase 6：路由与部署编排
 
-- 决定 zone 之间的路由方式（见 §8.2）
-- 每个 zone 配 `assetPrefix`，互不冲突
-- **跨域**：网页端若挂到 `devluo.com` 之外的域名，需同步扩展 `Lucent` 的
-  `CORS_ORIGIN` 白名单（见 §8.5）——**这是部署清单项，不是代码改动**
-- CI 扩展为按 app 分别构建（当前 `docs.yml` 只跑 `site`）
-- **验收**：三个 app 的产物可同时部署且互不覆盖
+**已定**（2026-09-28）：
+
+```
+devluo.com/                  → personal（占根路径）
+devluo.com/luminous/         → site（官网）
+devluo.com/luminous/docs/    → site（文档站）
+```
+
+- ✅ **`site` 用 `basePath: '/luminous'`**，**不用** `assetPrefix`。
+  官方 `assetPrefix` 文档明确：目的是挂子路径时应改用 `basePath`，
+  「不建议」为此使用 `assetPrefix`。两者的产物布局差异见 `docs/deployment.md`。
+- ✅ **`site` 用 `trailingSlash: true`**：静态导出默认产出 `luminous.html`，
+  而对象存储只把目录的 `index.html` 当默认页，`/luminous` 会 404。
+- ✅ **`(devluo)` route group 已删除**：原首页是"个人站占位页"，本就是 personal 的职责。
+  现 `site` 只含 `(luminous)`。
+- ✅ **`personal` 不加任何前缀**：它占根路径，是 multi-zones 语义里的**默认应用**，
+  官方明确默认应用不需要 `assetPrefix`。
+- ✅ **CI 已按 app 拆为三个 workflow**（`site.yml` / `personal.yml` / `desktop.yml`），
+  用 `paths` 过滤；`site.yml` 需三仓 checkout，另两个不需要。
+- ⬜ **部署脚本未写**：`site` 的产物需三部分分别落位（页面 / `_next` / `api`），
+  `_next` 必须重映射到 `/luminous/_next`。映射表见 `docs/deployment.md`。
+- ⬜ **对象存储侧配置未做**：默认首页、`Content-Type`、Brotli、404 页、旧根路径 301。
+- ⬜ **跨域**：网页端若挂到 `devluo.com` 之外的域名，需同步扩展 `Lucent` 的
+  `CORS_ORIGIN` 白名单（见 §8.5）——**这是部署清单项，不是代码改动**。
+
+**验收**：按 `docs/deployment.md` 的映射表组装产物后，`/`、`/luminous/`、
+`/luminous/docs/` 全部 200，且 `/luminous/api/search.json` 返回 `application/json`。
 
 > ⚠️ 跨 zone 链接必须用 `<a>` 而非 `<Link>`：Next.js 的 `<Link>` 会尝试
 > prefetch 并对相对路径做软跳转，跨 zone 不生效（见 Next.js multi-zones 指南
-> "Linking between zones"）。这条约束落在 Phase 6，但写组件时常会踩。
+> "Linking between zones"）。
 >
-> ⚠️ 别把 Phase 6 的 `assetPrefix`（multi-zones 路径前缀）与 desktop 已有的
-> 那个（**仅开发期**，让 WebView 资源指回 `next dev`）混为一谈，两者目的无关。
+> ⚠️ 别把 `site` 的 `basePath` 与 desktop 的 `assetPrefix` 混为一谈：后者
+> **仅在开发期**生效（让 WebView 资源指回 `next dev`），生产构建下为空。
+> 两者目的无关，不能互相套用。
+>
+> ⚠️ **`_next/` 的磁盘位置不因任何配置改变**（实测：`basePath` 与 `assetPrefix`
+> 都把它留在 `out/_next/`）。上传时必须手动重映射——这是最容易漏的一步，
+> 且只在线上暴露。
 
 ## 五、需要修订的既有决策
 
@@ -464,23 +495,41 @@ packages/sync/src/
 ADR-0008 **已就地修订**，路线为**已定**（Next.js + Tauri），客户端代码归属 `Luminary`，
 后端服务由 `Lucent` 提供。活跃产品文档已同步更正口径。**Phase 4 无阻塞。**
 
-### 8.2 域名与路径划分（**Phase 6 前置，仍未定**）
+### 8.2 域名与路径划分（**已定**）
 
-multi-zones 需把不同 zone 的路径路由到不同应用。当前访问路径是
-`devluo.com/luminous/docs`。待定：官网、个人站、桌面端各用什么路径或域名。
+```
+devluo.com/                  → personal（个人网站，占根路径）
+devluo.com/luminous/         → site（官网）
+devluo.com/luminous/docs/    → site（文档站）
+```
 
-- 子路径（`devluo.com/me`）→ 需要 rewrite 或代理
-- 独立域名 → 无需代理，但失去"同一站点"的观感
-- **桌面端不走 HTTP 路由**：产物被 Tauri 内嵌，不需要域名/路径划分
+**桌面端不占 HTTP 路由**：产物被 Tauri 内嵌，不需要域名/路径划分。
 
-> **本项的重要性已下降**：原以为网页端调 API 必须经代理绕开跨域，
-> 因而"托管方是否支持 rewrite"成了阻塞项。核实后该前提不成立（见 §8.5）。
-> 现在这里只剩纯路由问题。
+**这个划分推翻了原来的一个隐含假设**：原先 `site` 的 `(devluo)` route group
+提供根路径首页，而那个首页的内容是「个人站占位页」——它本来就是 personal 的职责。
+按新划分，`(devluo)` 已删除，`site` 只保留 `(luminous)`。
 
-### 8.3 托管方是否支持 rewrite（**Phase 6 前置**）
+**连带影响**（见 `docs/deployment.md`）：
 
-§8.2 若选子路径，则需要在托管侧做路由代理。**需先确认对象存储 + CDN
-能否配置 rewrite 规则**；不能的话只能退回「各 zone 独立挂载」，方案随之调整。
+- `site` 必须设 `basePath: '/luminous'`，否则它的 `/_next/` 会和 personal 的撞车
+- `site` 必须设 `trailingSlash: true`，否则 `/luminous` 在对象存储上 404
+- 旧根路径 `devluo.com/` 由官网改为个人站，外部链接需按需 301
+
+> 原先的"官网首页在根路径"是历史遗留：`site` 最初只服务 devluo.com 根，
+> 引入 personal 后两者都要根路径，必须让出——按交付形态判断，
+> 根路径归 personal（域名本身即是个人站点），产品线收敛到 `/luminous`。
+
+### 8.3 rewrite 需求（**已确认不需要**）
+
+原担心两件事，都已排除：
+
+1. **跨域需要代理层**——不成立。`Lucent` 已实现 CORS（见 §8.5），网页端直连即可。
+2. **子路径需要托管侧 rewrite**——不成立。`site` 挂 `/luminous` 用的是
+   Next 自己的 `basePath`，**在构建期解决**，不依赖托管方的 rewrite 规则。
+
+因此对象存储 + CDN 只需支持最基本的「按路径提供静态文件」，
+唯一需要额外处理的是 `_next/` 的上传重映射（见 `docs/deployment.md`），
+那是**上传脚本**的事，不是托管方能力问题。
 
 ### 8.5 跨域：**已核实，后端无需改动**
 

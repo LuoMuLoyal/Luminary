@@ -18,17 +18,36 @@ Luminary/
 
 **三个 app 按发布形态分区，不按技术栈分**：
 
-| app | 输出 | 分发 |
-|---|---|---|
-| `site` | `output: 'export'` → `out/` | 上传 CDN |
-| `personal` | `output: 'export'` → `out/` | 上传 CDN |
-| `desktop` | `output: 'export'` → `out/` | Tauri 内嵌进安装包 |
+| app | 输出 | 分发 | 线上位置 |
+|---|---|---|---|
+| `site` | `output: 'export'` → `out/` | 上传 CDN | `devluo.com/luminous/` |
+| `personal` | `output: 'export'` → `out/` | 上传 CDN | `devluo.com/` |
+| `desktop` | `output: 'export'` → `out/` | Tauri 内嵌进安装包 | 无 HTTP 路由 |
 
 三个 app **都是静态导出**。`desktop` 之所以也必须是静态，不是取舍而是硬约束：
 Tauri 官方明确"不支持基于服务端的方案"（见 https://tauri.app/start/frontend/nextjs/）。
 桌面端需要"服务端"能力的部分（认证、请求中转）由 **Rust 层**承担，不是 Node。
 
 三者的差别在**分发方式**，不在渲染方式。
+
+## 站点拓扑与部署
+
+```
+devluo.com/                  → personal（占根路径）
+devluo.com/luminous/         → site（官网）
+devluo.com/luminous/docs/    → site（文档站）
+```
+
+`site` 与 `personal` 同域共存、**都要产出 `/_next/`**，因此 `site` 设了
+`basePath: '/luminous'` 把资源区分开——这是 Next 在**构建期**解决的，
+不依赖托管方的 rewrite 规则。
+
+两处容易踩的坑（详见 `docs/deployment.md`）：
+
+- `site` 的 `_next/` 在磁盘上仍在 `out/_next/`，**上传时需重映射**到
+  `/luminous/_next/`。这一步只在线上暴露，本地 `next dev` 看不出来。
+- 搜索索引由构建收尾脚本从 `api/search` 改名为 `api/search.json`，
+  否则对象存储不返回 `application/json`。
 
 ## 常用命令
 
@@ -93,5 +112,6 @@ pnpm --filter @luminary/desktop tauri:build   # 打包安装包
 
 ## 相关文档
 
+- 部署（拓扑、配置选型、上传映射、对象存储配置）：`docs/deployment.md`
 - 改造计划与决策依据：`plans/2026-09-28-luminary-monorepo-plan.md`
 - 文档站落地过程与实测数据：`plans/2026-09-28-docs-site-rollout-plan.md`

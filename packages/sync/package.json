@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "两仓文档同步与构建门禁（Node 24 原生跑 .ts，无构建步骤）",
+  "description": "两仓文档同步、构建门禁与静态产物收尾（Node 24 原生跑 .ts，无构建步骤）",
   "exports": {
     "./sync-docs": "./src/sync-docs.ts",
     "./verify-docs": "./src/verify-docs.ts",
-    "./audit-links": "./src/audit-links.ts"
+    "./audit-links": "./src/audit-links.ts",
+    "./finalize-export": "./src/finalize-export.ts"
   },
   "scripts": {},
   "engines": {

@@ -36,5 +36,21 @@ export const SEARCH_DOCUMENT_OPTIONS = {
   encoder: 'CJK',
 } as const
 
-/** 索引文件地址（站点根下的静态 JSON，由 `staticGET` 在构建期导出）。 */
-export const SEARCH_INDEX_URL = '/api/search'
+/**
+ * 索引文件地址（站点根下的静态 JSON，由 `staticGET` 在构建期导出）。
+ *
+ * ⚠️ **两点都不能改错**：
+ *
+ * 1. **带 `.json` 扩展名**。静态导出会把 Route Handler 写成无扩展名的文件
+ *    （`out/api/search`），对象存储按扩展名判定 `Content-Type`——
+ *    无扩展名会被当作 `application/octet-stream`（或被拒），
+ *    前端 `fetch().json()` 失败。加扩展名后产物是 `out/api/search.json`，
+ *    走正常的 JSON 类型。
+ *
+ * 2. **必须拼上 `basePath`**。本 app 挂在 `/luminous` 下（见 next.config.mjs），
+ *    资源路径写死 `/api/...` 会去**根路径**取——而根路径归 personal，必然 404。
+ *    这里用构建期注入的 `NEXT_PUBLIC_BASE_PATH`（next.config.mjs 的 env）。
+ */
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+
+export const SEARCH_INDEX_URL = `${basePath}/api/search.json`
