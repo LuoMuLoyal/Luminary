@@ -1,6 +1,6 @@
 # Luminary
 
-多产品聚合站的 monorepo：产品官网与文档站、个人网站、Luminous 桌面工作台。
+多产品聚合站的 monorepo：产品官网与文档站、个人网站、Luminous 桌面客户端。
 
 ## 结构
 
@@ -9,7 +9,7 @@ Luminary/
 ├── apps/
 │   ├── site/        # 官网 + 文档站（静态导出 → out/）
 │   ├── personal/    # 个人网站（静态导出 → out/）
-│   └── workbench/   # 桌面工作台（SSR；src-tauri/ 是 Tauri 壳）
+│   └── desktop/     # 桌面客户端（静态导出 → out/，由 src-tauri/ 打包）
 ├── packages/
 │   └── sync/        # 两仓文档同步与构建门禁
 ├── turbo.jsonc      # 任务图（含各条约束的理由）
@@ -18,13 +18,17 @@ Luminary/
 
 **三个 app 按发布形态分区，不按技术栈分**：
 
-| app | 输出 | 部署 |
+| app | 输出 | 分发 |
 |---|---|---|
-| `site` | `output: 'export'` → `out/` | 静态上传 CDN |
-| `personal` | `output: 'export'` → `out/` | 静态上传 CDN |
-| `workbench` | 默认 SSR → `.next/`，**无 `out/`** | `next start` / Tauri 打包 |
+| `site` | `output: 'export'` → `out/` | 上传 CDN |
+| `personal` | `output: 'export'` → `out/` | 上传 CDN |
+| `desktop` | `output: 'export'` → `out/` | Tauri 内嵌进安装包 |
 
-`output: 'export'` 是 **app 级**开关，因此两个静态 app 恒为静态导出，不受 workbench 影响。
+三个 app **都是静态导出**。`desktop` 之所以也必须是静态，不是取舍而是硬约束：
+Tauri 官方明确"不支持基于服务端的方案"（见 https://tauri.app/start/frontend/nextjs/）。
+桌面端需要"服务端"能力的部分（认证、请求中转）由 **Rust 层**承担，不是 Node。
+
+三者的差别在**分发方式**，不在渲染方式。
 
 ## 常用命令
 
@@ -48,6 +52,18 @@ pnpm ci:docs       # 同步 + 门禁 + 构建（CI 用的完整链路）
 pnpm --filter @luminary/site dev
 pnpm --filter @luminary/site build
 ```
+
+桌面端由 Tauri 驱动（`beforeDevCommand` / `beforeBuildCommand` 已配好，
+会自动带上 Next 的 dev / build）：
+
+```bash
+pnpm --filter @luminary/desktop tauri:dev     # 起 next dev + 桌面窗口
+pnpm --filter @luminary/desktop tauri:build   # 打包安装包
+```
+
+> ⚠️ `tauri:*` 需要 `tauri-cli`（`cargo install tauri-cli`），
+> 只有 Rust 工具链不够。Windows 侧另需 `src-tauri/icons/icon.ico`——
+> 缺了会在生成 Windows Resource 时直接失败。
 
 ## 文档站
 

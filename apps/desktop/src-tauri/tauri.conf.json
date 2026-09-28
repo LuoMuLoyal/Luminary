@@ -1,16 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "工作台",
+  "productName": "Luminous",
   "version": "0.1.0",
-  "identifier": "com.devlujo.workbench",
+  "identifier": "com.devlujo.luminous.desktop",
   "build": {
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build",
     "devUrl": "http://localhost:3002",
-    "frontendDist": "../.next"
+    "frontendDist": "../out"
   },
   "app": {
     "windows": [
       {
-        "title": "工作台",
+        "title": "Luminous",
         "width": 1280,
         "height": 800,
         "resizable": true
@@ -23,6 +25,6 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon.png"]
+    "icon": ["icons/icon.ico", "icons/icon.png"]
   }
 }

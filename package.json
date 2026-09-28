@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "多产品聚合站 monorepo：官网/文档站、个人网站、桌面工作台",
+  "description": "多产品聚合站 monorepo：官网/文档站、个人网站、桌面客户端",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",

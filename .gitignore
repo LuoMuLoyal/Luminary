@@ -80,6 +80,6 @@ apps/site/public/compodoc/
 
 
 # Rust / Tauri 构建产物
-apps/workbench/src-tauri/target/
-apps/workbench/src-tauri/gen/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
 

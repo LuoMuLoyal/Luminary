@@ -1,0 +1,34 @@
+[package]
+name = "luminary-desktop"
+version = "0.1.0"
+description = "Luminous 桌面客户端外壳"
+edition = "2021"
+rust-version = "1.77"
+
+# 库名带下划线：`main.rs` 用 `luminary_desktop_lib::run()` 引用它。
+# 不用与包名同形是为了避免在 Windows 上的链接歧义。
+#
+# 注意：Cargo 包名可以带连字符，但 lib name 必须是合法 Rust 标识符，
+# 所以下面显式写成下划线形式。
+[lib]
+name = "luminary_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+
+[features]
+# 由 `tauri build` 在需要时启用（自定义协议等）
+custom-protocol = ["tauri/custom-protocol"]
+
+# tauri-build 会读取本段；缺失时报 "package.metadata does not exist"，
+# Windows 上会直接构建失败。
+[package.metadata.tauri]
+# Windows 任务栏/开始菜单用的图标集。
+# 必须含 .ico——Windows Resource 编译阶段强制要求（缺了直接构建失败，
+# 报 "not found; required for generating a Windows Resource file"）。
+icon = ["icons/icon.ico"]
