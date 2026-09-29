@@ -7,7 +7,18 @@ import { openapi } from './openapi'
 /**
  * 文档内容源。
  *
- * baseUrl 必须等于公开 URL：路径式拓扑下文档在 devluo.com/luminous/docs。
+ * ## baseUrl 为什么是**裸路径** `/docs`
+ *
+ * fumadocs 生成的链接会**原样输出**，而 Next 的 `basePath`（`/luminous`）
+ * 还会在渲染时**再注入一次**。两者叠加的后果是双重前缀：
+ * `/luminous/luminous/docs/...`——线上死链（实测：单个页面 14 条链接中招）。
+ *
+ * 所以这里写**裸路径**，前缀交给 `basePath` 统一注入，与本仓库其他内部链接
+ * （见 `app/(luminous)/luminous/page.tsx` 的说明）保持一致。
+ *
+ * ⚠️ 这与「baseUrl 必须等于公开 URL」的直觉相反，但公开 URL 是
+ * `basePath + baseUrl` 的**合成结果**，不是 baseUrl 本身。
+ * 公开 URL 仍是 devluo.com/luminous/docs。
  *
  * ## 内容来源
  *
@@ -35,11 +46,11 @@ const docs = defineDocs({
 })
 
 export const source = loader({
-  baseUrl: '/luminous/docs',
+  baseUrl: '/docs',
   source: multiple({
     docs: docs.toFumadocsSource(),
     // baseDir 决定虚拟页挂在哪个路径前缀下。不传的话 143 个 API 页会直接落到
-    // `/luminous/docs/<operationName>`（实测），与普通文档同级、也无法在导航里分组。
+    // `/docs/<operationName>`（实测），与普通文档同级、也无法在导航里分组。
     //
     // groupBy: 'tag' 按 spec 的 tag 分文件夹（实测 23 组）。不做的话 143 个端点在
     // 侧边栏里平铺，读者无法按模块定位。
