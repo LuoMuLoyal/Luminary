@@ -1,5 +1,8 @@
 import { createMDX } from 'fumadocs-mdx/next'
 
+// ⚠️ MDX / shiki 的选项**不在这里配**：`createMDX` 只接受
+// `configPath` / `outDir` / `macro` / `index`，没有 mdx 或 rehype 相关项。
+// 代码块高亮等编译期配置在 `source.config.ts`（见该文件）。
 const withMDX = createMDX()
 
 /**
@@ -35,11 +38,17 @@ const withMDX = createMDX()
  * | 配置 | HTML 里的资源路径 | 磁盘上的实际位置 | 结果 |
  * |---|---|---|---|
  * | `assetPrefix: '/luminous'` | `/luminous/_next/...` | `out/_next/...` | ❌ 对不上，CDN 上 404 |
- * | `basePath: '/luminous'` | `/luminous/_next/...` | `out/luminous/_next/...` | ✅ 一致 |
+ * | `basePath: '/luminous'` | `/luminous/_next/...` | `out/_next/...` | ⚠️ 需在上传时重映射 |
+ *
+ * ⚠️ 上面第二行的「磁盘位置」是**实测结论**：`basePath` 并**不会**把 `_next/`
+ * 挪到 `out/luminous/_next/`，它始终在 `out/_next/`。引用路径带前缀、磁盘不带，
+ * 因此**上传时必须手动重映射**到 `/luminous/_next/`——这是只在线上暴露的坑，
+ * 本地 `next dev` 看不出来。映射表与上传脚本见 `docs/deployment.md`
+ * 与 `scripts/deploy/`。
  *
  * 原因是 `assetPrefix` 的语义是"资源在别处（CDN 域名）"，物理文件仍在
  * `/_next/`，靠 CDN 回源规则去映射；而静态导出没有服务端做这层映射，
- * 必须让产物布局与引用路径**天然一致**——`basePath` 就是这样。
+ * 所以前缀只能体现在上传落位上，不能指望产物自己移动到子目录里。
  *
  * `basePath` 还顺带解决两件事（这两件 `assetPrefix` 不管，得手写）：
  *   1. `<Link href="/luminous/docs">` 这类**页面链接**会自动带上前缀；
