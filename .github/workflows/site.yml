@@ -175,3 +175,138 @@ jobs:
           name: site-out
           path: Luminary/apps/site/out
           retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # 部署到七牛云 Kodo（仅 main 分支，PR 不部署）
+  #
+  # ## 为什么部署与构建分成两个 job
+  #
+  # 构建要在 PR 上跑（门禁），部署只能在 main 上跑。分成两个 job 后
+  # `if` 只需要判一次（见下），且 PR 的失败面不会碰到任何凭据。
+  #
+  # ## 需要配置的 repository secrets
+  #
+  #   QINIU_ACCESS_KEY / QINIU_SECRET_KEY —— 七牛密钥（控制台 → 密钥管理）
+  #
+  # ## ⚠️ 为什么「是否配置了凭据」的判定放在 step 上而不是 job 的 if 上
+  #
+  # GitHub 明确**不允许在 `if` 里直接引用 secrets**（官方文档
+  # workflow-syntax-for-github-actions 的「Example: Using secrets」一节：
+  # "Secrets cannot be directly referenced in `if:` conditionals"）。
+  # 官方给的做法是：把 secret 绑到 job 级 `env`，再在 step 的 `if` 里判
+  # 那个环境变量。本 job 就按这个来：
+  #
+  #   job 级 `if`  —— 只判分支与事件类型（不用 secrets）
+  #   首个 step    —— 读 env 里的 secret，把结论写进 `steps.creds.outputs.configured`
+  #   后续 step    —— 判 `steps.creds.outputs.configured == 'true'`
+  #
+  # 这样在未配置凭据时（fork、或还没加 secrets），job 会跑但所有实质步骤被跳过，
+  # 且 job 以**成功**结束——构建门禁已在 build job 通过，缺凭据不该让整条流水线变红。
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: 部署到七牛
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # 绑定 secrets 到 env，供 step 的 if 判定（不能在 if 里直接用 secrets）
+    env:
+      QINIU_ACCESS_KEY: ${{ secrets.QINIU_ACCESS_KEY }}
+      QINIU_SECRET_KEY: ${{ secrets.QINIU_SECRET_KEY }}
+      # 空间名可用 repository variable 覆盖，默认 luminary-docs
+      QINIU_BUCKET: ${{ vars.QINIU_BUCKET || 'luminary-docs' }}
+
+    # job 级只判分支与事件：main 分支的 push / workflow_dispatch / repository_dispatch。
+    # PR 不部署（PR 也拿不到 secrets）。
+    if: >
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request'
+
+    steps:
+      - name: 检查凭据是否已配置
+        id: creds
+        run: |
+          if [ -n "$QINIU_ACCESS_KEY" ] && [ -n "$QINIU_SECRET_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "✓ 七牛凭据已配置，继续部署"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::未配置 QINIU_ACCESS_KEY / QINIU_SECRET_KEY，跳过部署。"
+            echo "本 job 会以成功结束——构建门禁已在 build job 通过，缺凭据不该让整条流水线变红。"
+          fi
+
+      # ⚠️ 路径必须与 build job 的产物布局一致。
+      #
+      # 脚本按 `<仓库根>/apps/site/out` 找产物（见 qiniu-upload.ps1 的 $outDir），
+      # 而 build job 是把 out 的内容打包成 artifact `site-out` 的。
+      # 这里 check out 到 Luminary/ 子目录（与 build job 同样的层级），
+      # 再把 artifact 解到 apps/site/out —— 两边对上，脚本才找得到。
+      - name: Checkout
+        if: steps.creds.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        with:
+          path: Luminary
+
+      - name: 下载构建产物
+        if: steps.creds.outputs.configured == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: site-out
+          path: Luminary/apps/site/out
+
+      # qshell 官方发布页取 Linux amd64 二进制。
+      # ⚠️ 固定版本号而不是 latest：上传行为直接决定线上形态，
+      #    让它随上游漂移是没必要的风险。升级时改这里并跑一次部署验证。
+      - name: 安装 qshell
+        if: steps.creds.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          QSHELL_VERSION="2.19.13"
+          url="https://github.com/qiniu/qshell/releases/download/v${QSHELL_VERSION}/qshell-v${QSHELL_VERSION}-linux-amd64.tar.gz"
+          echo "下载 $url"
+          curl -fsSL "$url" -o qshell.tar.gz
+          tar -xzf qshell.tar.gz
+          # 解出的文件名随版本变化（qshell_linux_amd64 / qshell 等），统一改名
+          found="$(find . -maxdepth 1 -type f -name 'qshell*' ! -name '*.tar.gz' ! -name '*.conf' | head -n1)"
+          [ -n "$found" ] || { echo "::error::解压后找不到 qshell 可执行文件"; ls -la; exit 1; }
+          mv "$found" qshell
+          chmod +x qshell
+          ./qshell version
+
+      - name: 配置七牛账号
+        if: steps.creds.outputs.configured == 'true'
+        run: ./qshell account "$QINIU_ACCESS_KEY" "$QINIU_SECRET_KEY"
+
+      # 用仓库里的脚本组装（把 out/_next 重映射到 luminous/_next）。
+      # 脚本同时做上传前自检：缺 luminous/_next 或 api/search.json 会直接失败，
+      # 而这两件事**只在线上暴露**——卡在 CI 比上线后再发现便宜得多。
+      #
+      # -StageOnly 让脚本只组装、不自己调 qshell：
+      # CI 上刚下的是 Linux 版 `./qshell`，而脚本默认去工作区根找 `qshell.exe`。
+      #
+      # ⚠️ -StageDir 必须与下面上传的 --src-dir 一致，且都用 $RUNNER_TEMP。
+      #    不显式指定的话脚本会用 `[IO.Path]::GetTempPath()`（runner 上是 /tmp），
+      #    与 $RUNNER_TEMP（/home/runner/work/_temp）**不是同一个目录**，
+      #    结果是安静地上传一个空目录。
+      - name: 按映射表组装
+        if: steps.creds.outputs.configured == 'true'
+        shell: pwsh
+        run: |
+          ./Luminary/scripts/deploy/qiniu-upload.ps1 `
+            -Domain devluo.com `
+            -StageOnly `
+            -StageDir "$env:RUNNER_TEMP/luminary-site-stage"
+
+      - name: 上传到 Kodo
+        if: steps.creds.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          ./qshell qupload2 \
+            --src-dir "$RUNNER_TEMP/luminary-site-stage" \
+            --bucket "$QINIU_BUCKET" \
+            --overwrite \
+            --rescan-local \
+            --detect-mime 1 \
+            --thread-count 10 \
+            --skip-file-prefixes .DS_Store \
+            --skip-fixed-strings .DS_Store
