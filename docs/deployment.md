@@ -51,6 +51,31 @@ devluo.com/luminous/docs/    → site（文档站）
 ⚠️ **`_next/` 的磁盘位置不因任何配置改变**，`out/_next/` 始终在根。
 上传时必须手动重映射（见下方映射表）。
 
+## 内部链接一律写裸路径（双重前缀的唯一成因）
+
+`basePath` 会在渲染时给**所有**内部链接注入前缀——包括 fumadocs 生成的和
+markdown 里手写的。所以这些地方**一律写裸路径**，写了前缀就是双重前缀：
+
+| 位置 | 写法 | 错法 |
+|---|---|---|
+| `lib/source.ts` 的 `baseUrl` | `/docs` | `/luminous/docs` |
+| `lib/site.ts` 的 `paths` | `/docs` | `/luminous/docs` |
+| markdown 正文链接 | `/docs/...` | `/luminous/docs/...` |
+| `<Link href>` | `/docs` | `/luminous/docs` |
+
+这个错误**只在线上/产物里暴露**，本地 `next dev`（同样走 basePath）看起来正常，
+但产物里的 href 会是死链。实测该 bug 曾让单个页面 14 条链接中招。
+
+需要**绝对 URL**（canonical / og:url / JSON-LD）时不能直接用裸路径——
+那类地址不会被注入前缀，用 `lib/site.ts` 的 `siteUrl()` 拼。
+
+校验办法（构建后跑，应输出 0）：
+
+```powershell
+Get-ChildItem out\luminous -Recurse -File -Filter *.html |
+  Select-String -Pattern '/luminous/luminous/' -List
+```
+
 ## 为什么需要 `trailingSlash: true`
 
 静态导出默认（`trailingSlash: false`）产出 `luminous.html`，而 URL `/luminous`
@@ -101,6 +126,19 @@ devluo.com/luminous/docs/    → site（文档站）
 ⚠️ 该脚本的 `RENAMES` 与 `apps/site/lib/search-config.ts` 的 `SEARCH_INDEX_URL`
 **必须同步修改**。两侧不联动的话，失败发生在**运行时**
 （搜索弹窗能开、输入无结果），不会有构建错误。
+
+## 上传工具与对象存储操作
+
+本仓库的产物分发**不能靠 rsync / 拖拽**：`out/` 的磁盘布局与线上 URL 布局不一致
+（见上方映射表），必须先按映射表重排。已提供脚本：
+
+```powershell
+pwsh scripts/deploy/qiniu-upload.ps1 -App site -Bucket <空间名> -Domain <域名> -DryRun
+```
+
+它按映射表组装 → 上传前自检（缺 `luminous/_next` 或 `api/search.json` 直接中止）
+→ 调 `qshell` 上传 → 按域名做 HTTP 校验。七牛控制台各配置项、费用额度、
+凭据获取与排错表见 `scripts/deploy/README.md`。
 
 ## 本地验证产物
 
