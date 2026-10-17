@@ -80,9 +80,13 @@ pnpm --filter @luminary/desktop tauri:dev     # 起 next dev + 桌面窗口
 pnpm --filter @luminary/desktop tauri:build   # 打包安装包
 ```
 
-> ⚠️ `tauri:*` 需要 `tauri-cli`（`cargo install tauri-cli`），
-> 只有 Rust 工具链不够。Windows 侧另需 `src-tauri/icons/icon.ico`——
-> 缺了会在生成 Windows Resource 时直接失败。
+> `tauri:*` 由 `apps/desktop` 的 `@tauri-apps/cli` devDependency 提供，
+> `pnpm install` 后即可用，**不需要**全局 `cargo install tauri-cli`。
+> Windows 侧 `src-tauri/icons/icon.ico` 已由 `tauri icon` 生成。
+>
+> ⚠️ `tauri dev` 走 `devUrl`（`http://localhost:1420`）不需要静态产物，
+> 现在就能跑；`tauri build` 的前端产物依赖 `output: 'export'`，
+> 而模板的路由树是服务端认证的，**桌面端尚未静态化，`tauri build` 暂时不可用**。
 
 ## 文档站
 
