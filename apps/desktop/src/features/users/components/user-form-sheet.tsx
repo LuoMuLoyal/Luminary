@@ -1,10 +1,8 @@
-'use client';
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FieldGroup } from '@/components/ui/field';
 import { useAppForm } from '@/lib/form';
-import { LoadingButton } from '@/components/ui/loading-button';
+import { Spinner } from '@/components/ui/spinner';
 import {
   Sheet,
   SheetContent,
@@ -39,20 +37,20 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
   const createMutation = useMutation({
     ...createUserMutation,
     onSuccess: () => {
-      toast.success('User created');
+      toast.success('User created successfully');
       onOpenChange(false);
       form.reset();
     },
-    onError: () => toast.error("Couldn't create user. Try again.")
+    onError: () => toast.error('Failed to create user')
   });
 
   const updateMutation = useMutation({
     ...updateUserMutation,
     onSuccess: () => {
-      toast.success('User updated');
+      toast.success('User updated successfully');
       onOpenChange(false);
     },
-    onError: () => toast.error("Couldn't update user. Try again.")
+    onError: () => toast.error('Failed to update user')
   });
 
   const form = useAppForm({
@@ -165,9 +163,14 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
           <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <LoadingButton loading={isPending} type='submit' form='user-form-sheet'>
+          <Button type='submit' form='user-form-sheet' disabled={isPending}>
+            {isPending ? (
+              <Spinner data-icon='inline-start' />
+            ) : (
+              <Icons.check data-icon='inline-start' />
+            )}
             {isEdit ? 'Update User' : 'Create User'}
-          </LoadingButton>
+          </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

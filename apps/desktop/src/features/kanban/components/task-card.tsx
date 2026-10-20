@@ -1,5 +1,3 @@
-'use client';
-
 import { Badge } from '@/components/ui/badge';
 import { KanbanItem } from '@/components/ui/kanban';
 import type { Task } from '../utils/store';

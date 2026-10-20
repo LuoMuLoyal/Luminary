@@ -1,5 +1,3 @@
-'use client';
-
 import type { Column } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import { DataTableFilterClear } from '@/components/ui/table/data-table-filter-clear';
@@ -163,9 +161,11 @@ export function DataTableDateFilter<TData>({
 
   return (
     <Popover>
-      <PopoverTrigger render={<Button variant='outline' size='sm' className='border-dashed' />}>
-        {hasValue ? <DataTableFilterClear title={title} onReset={onReset} /> : <Icons.calendar />}
-        {label}
+      <PopoverTrigger asChild>
+        <Button variant='outline' size='sm' className='border-dashed'>
+          {hasValue ? <DataTableFilterClear title={title} onReset={onReset} /> : <Icons.calendar />}
+          {label}
+        </Button>
       </PopoverTrigger>
       <PopoverContent className='w-auto p-0' align='start'>
         {multiple ? (

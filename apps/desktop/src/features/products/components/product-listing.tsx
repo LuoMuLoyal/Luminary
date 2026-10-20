@@ -1,31 +1,18 @@
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { getQueryClient } from '@/lib/query-client';
-import { searchParamsCache } from '@/lib/searchparams';
-import { productsQueryOptions } from '../api/queries';
+import { Suspense } from 'react';
 import { ProductTable } from './product-tables';
 
 export default function ProductListingPage() {
-  const page = searchParamsCache.get('page');
-  const search = searchParamsCache.get('name');
-  const pageLimit = searchParamsCache.get('perPage');
-  const categories = searchParamsCache.get('category');
-  const sort = searchParamsCache.get('sort');
-
-  const filters = {
-    page,
-    limit: pageLimit,
-    ...(search && { search }),
-    ...(categories && { categories }),
-    ...(sort && { sort })
-  };
-
-  const queryClient = getQueryClient();
-
-  void queryClient.prefetchQuery(productsQueryOptions(filters));
-
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
+    <Suspense
+      fallback={
+        <div className='flex flex-1 animate-pulse flex-col gap-4'>
+          <div className='bg-muted h-10 w-full rounded' />
+          <div className='bg-muted h-96 w-full rounded-lg' />
+          <div className='bg-muted h-10 w-full rounded' />
+        </div>
+      }
+    >
       <ProductTable />
-    </HydrationBoundary>
+    </Suspense>
   );
 }

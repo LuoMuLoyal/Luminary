@@ -1,5 +1,3 @@
-'use client';
-
 import { FormEvent, useRef } from 'react';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -63,7 +61,6 @@ export function MessageComposer({
             }}
             placeholder={'Message ' + contactName + ' (Enter to send, Shift+Enter for newline)'}
             rows={2}
-            required={attachments.length === 0}
             className='text-foreground placeholder:text-muted-foreground/70 min-h-[3rem] w-full resize-none border-none bg-transparent text-xs focus-visible:ring-0 focus-visible:outline-none sm:min-h-[4rem] sm:text-sm'
             aria-label={'Message ' + contactName}
           />
@@ -83,7 +80,6 @@ export function MessageComposer({
         <div className='flex shrink-0 flex-col items-end gap-1.5 sm:w-24 sm:gap-2'>
           <input
             ref={fileInputRef}
-            aria-label='Add attachments'
             type='file'
             multiple
             className='hidden'

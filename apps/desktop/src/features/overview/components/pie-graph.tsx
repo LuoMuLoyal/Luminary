@@ -1,5 +1,3 @@
-'use client';
-
 import { LabelList, Pie, PieChart } from 'recharts';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -80,7 +78,7 @@ export function PieGraph() {
                 fontSize={12}
                 fontWeight={500}
                 fill='currentColor'
-                formatter={(value) => String(value ?? '')}
+                formatter={(value) => String(value)}
               />
             </Pie>
           </PieChart>

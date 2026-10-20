@@ -1,26 +1,23 @@
-import { QueryClient, defaultShouldDehydrateQuery, isServer } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
 
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000
-      },
-      dehydrate: {
-        shouldDehydrateQuery: (query) =>
-          defaultShouldDehydrateQuery(query) || query.state.status === 'pending'
-      }
-    }
-  });
-}
-
-let browserQueryClient: QueryClient | undefined = undefined;
+// Singleton query client for use in mutation options and other non-component code.
+// In TanStack Start, the primary queryClient lives in the router context,
+// but mutations defined outside components need a reference too.
+let queryClient: QueryClient | undefined;
 
 export function getQueryClient() {
-  if (isServer) {
-    return makeQueryClient();
-  } else {
-    if (!browserQueryClient) browserQueryClient = makeQueryClient();
-    return browserQueryClient;
+  if (!queryClient) {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 60 * 1000
+        }
+      }
+    });
   }
+  return queryClient;
+}
+
+export function setQueryClient(client: QueryClient) {
+  queryClient = client;
 }

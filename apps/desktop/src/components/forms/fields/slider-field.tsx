@@ -1,5 +1,3 @@
-'use client';
-
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Slider } from '@/components/ui/slider';
 import { useFieldContext, type BaseFieldProps } from '@/lib/form-context';

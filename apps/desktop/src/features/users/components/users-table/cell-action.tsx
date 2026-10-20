@@ -1,11 +1,10 @@
-'use client';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
@@ -46,22 +45,22 @@ export function CellAction({ data }: CellActionProps) {
       />
       <UserFormSheet user={data} open={editOpen} onOpenChange={setEditOpen} />
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger render={<Button variant='ghost' className='h-8 w-8 p-0' />}>
-          <span className='sr-only'>Open menu</span>
-          <Icons.ellipsis className='h-4 w-4' />
+        <DropdownMenuTrigger asChild>
+          <Button variant='ghost' className='h-8 w-8 p-0'>
+            <span className='sr-only'>Open menu</span>
+            <Icons.ellipsis className='h-4 w-4' />
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
           <DropdownMenuGroup>
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
           </DropdownMenuGroup>
-          <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => setEditOpen(true)}>
-              <Icons.edit className='mr-2 h-4 w-4' /> Update
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setDeleteOpen(true)}>
-              <Icons.trash className='mr-2 h-4 w-4' /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
+          <DropdownMenuItem onClick={() => setEditOpen(true)}>
+            <Icons.edit className='mr-2 h-4 w-4' /> Update
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setDeleteOpen(true)}>
+            <Icons.trash className='mr-2 h-4 w-4' /> Delete
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </>

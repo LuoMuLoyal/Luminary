@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { ToggleGroup } from '@/components/ui/toggle-group';
@@ -21,11 +19,11 @@ export function ToggleGroupField({
     <Field>
       <FieldLabel id={labelId}>{label}</FieldLabel>
       <ToggleGroup
-        multiple
+        type='multiple'
         variant='outline'
         aria-labelledby={labelId}
         value={field.state.value || []}
-        onValueChange={(val) => field.handleChange(val)}
+        onValueChange={(val: string[]) => field.handleChange(val)}
       >
         {children}
       </ToggleGroup>

@@ -1,14 +1,11 @@
-'use client';
-
 import { Button } from '@/components/ui/button';
-import { LoadingButton } from '@/components/ui/loading-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FieldGroup } from '@/components/ui/field';
 import { useAppForm } from '@/lib/form';
 import { categoryOptions } from '@/features/products/constants/product-options';
 import { productSchema, type ProductFormValues } from '@/features/products/schemas/product';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { createProductMutation, updateProductMutation } from '../api/mutations';
 import type { Product } from '../api/types';
@@ -26,22 +23,22 @@ export default function ProductForm({
   const createMutation = useMutation({
     ...createProductMutation,
     onSuccess: () => {
-      toast.success('Product created');
-      router.push('/dashboard/product');
+      toast.success('Product created successfully');
+      router.navigate({ to: '/dashboard/product' });
     },
     onError: () => {
-      toast.error("Couldn't create product. Try again.");
+      toast.error('Failed to create product');
     }
   });
 
   const updateMutation = useMutation({
     ...updateProductMutation,
     onSuccess: () => {
-      toast.success('Product updated');
-      router.push('/dashboard/product');
+      toast.success('Product updated successfully');
+      router.navigate({ to: '/dashboard/product' });
     },
     onError: () => {
-      toast.error("Couldn't update product. Try again.");
+      toast.error('Failed to update product');
     }
   });
 
@@ -75,7 +72,7 @@ export default function ProductForm({
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Card className='mx-auto w-full max-w-3xl'>
+    <Card className='mx-auto w-full'>
       <CardHeader>
         <CardTitle className='text-left text-2xl font-bold'>{pageTitle}</CardTitle>
       </CardHeader>
@@ -150,12 +147,12 @@ export default function ProductForm({
           </FieldGroup>
 
           <div className='flex justify-end gap-2'>
-            <Button type='button' variant='outline' onClick={() => router.back()}>
-              Cancel
+            <Button type='button' variant='outline' onClick={() => router.history.back()}>
+              Back
             </Button>
-            <LoadingButton loading={isPending} type='submit'>
+            <Button type='submit' disabled={isPending}>
               {isEdit ? 'Update Product' : 'Add Product'}
-            </LoadingButton>
+            </Button>
           </div>
         </form>
       </CardContent>

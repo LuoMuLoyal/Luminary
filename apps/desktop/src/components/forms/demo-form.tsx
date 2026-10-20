@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { useStore } from '@tanstack/react-form';
 import * as z from 'zod';

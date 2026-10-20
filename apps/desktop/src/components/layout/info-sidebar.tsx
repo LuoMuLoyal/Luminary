@@ -1,15 +1,12 @@
-'use client';
-
 import * as React from 'react';
 import { Icons } from '@/components/icons';
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import {
   Infobar,
   InfobarContent,
   InfobarGroup,
   InfobarGroupContent,
   InfobarHeader,
-  InfobarRail,
   InfobarTrigger,
   useInfobar
 } from '@/components/ui/infobar';
@@ -69,7 +66,7 @@ export function InfoSidebar({ ...props }: React.ComponentProps<typeof Infobar>) 
                           {section.links.map((link) => (
                             <li key={link.title}>
                               <Link
-                                href={link.url}
+                                to={link.url}
                                 className='text-primary flex items-center gap-1.5 text-sm underline'
                                 target='_blank'
                                 rel='noopener noreferrer'
@@ -93,7 +90,6 @@ export function InfoSidebar({ ...props }: React.ComponentProps<typeof Infobar>) 
           </InfobarGroupContent>
         </InfobarGroup>
       </InfobarContent>
-      <InfobarRail />
     </Infobar>
   );
 }

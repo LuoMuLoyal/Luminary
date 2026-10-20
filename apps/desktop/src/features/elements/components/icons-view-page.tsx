@@ -1,11 +1,8 @@
-'use client';
-
 import { useState } from 'react';
 import { Icons } from '@/components/icons';
 import PageContainer from '@/components/layout/page-container';
 import { Input } from '@/components/ui/input';
 import { buttonVariants } from '@/components/ui/button';
-import Link from 'next/link';
 
 const TABLER_ICONS_URL = 'https://tabler.io/icons';
 
@@ -20,7 +17,7 @@ export default function IconsViewPage() {
     <PageContainer
       pageTitle='Icons'
       pageHeaderAction={
-        <Link
+        <a
           href={TABLER_ICONS_URL}
           target='_blank'
           rel='noopener noreferrer'
@@ -28,7 +25,7 @@ export default function IconsViewPage() {
         >
           <Icons.externalLink className='mr-2 h-4 w-4' />
           <span className='hidden sm:inline'>Browse</span> Tabler Icons
-        </Link>
+        </a>
       }
     >
       <div className='space-y-4'>

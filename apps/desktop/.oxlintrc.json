@@ -1,12 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "nextjs", "import", "jsx-a11y"],
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "import", "jsx-a11y"],
   "env": {
     "es6": true,
     "browser": true,
     "node": true
   },
-  "ignorePatterns": [".next/**", "out/**", "build/**", "next-env.d.ts", "scripts/**"],
+  "ignorePatterns": [".tanstack/**", "dist/**", "build/**", "src/routeTree.gen.ts", "scripts/**"],
   "settings": {
     "jsx-a11y": {
       "components": {
@@ -43,6 +43,7 @@
     "jsx-a11y/role-has-required-aria-props": "warn",
     "jsx-a11y/role-supports-aria-props": "warn",
     "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/anchor-is-valid": "off",
     "jsx-a11y/no-autofocus": ["error", { "ignoreNonDOM": true }]
   },
   "overrides": [

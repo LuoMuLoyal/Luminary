@@ -1,122 +1,27 @@
-import {
-  Architects_Daughter,
-  DM_Sans,
-  Fira_Code,
-  Geist,
-  Geist_Mono,
-  Google_Sans_Flex,
-  Instrument_Sans,
-  Inter,
-  JetBrains_Mono,
-  Merriweather,
-  Mulish,
-  Playfair_Display,
-  Noto_Sans_Mono,
-  Outfit,
-  Source_Code_Pro,
-  Space_Mono
-} from 'next/font/google';
+/**
+ * Font configuration for Fontsource-based font loading.
+ * Fonts are loaded via CSS @import in globals.css.
+ * Theme CSS files reference fonts by their family names.
+ *
+ * No fontVariables class string is needed since fonts are loaded at the CSS level.
+ */
 
-import { cn } from '@/lib/utils';
+export const fonts = {
+  sans: { family: 'Geist Variable', variable: '--font-sans' },
+  mono: { family: 'Geist Mono Variable', variable: '--font-mono' },
+  inter: { family: 'Inter Variable', variable: '--font-inter' },
+  dmSans: { family: 'DM Sans Variable', variable: '--font-dm-sans' },
+  instrument: { family: 'Instrument Sans Variable', variable: '--font-instrument' },
+  mullish: { family: 'Mulish Variable', variable: '--font-mullish' },
+  outfit: { family: 'Outfit Variable', variable: '--font-outfit' },
+  playfairDisplay: { family: 'Playfair Display Variable', variable: '--font-playfair-display' },
+  merriweather: { family: 'Merriweather', variable: '--font-merriweather' },
+  architectsDaughter: { family: 'Architects Daughter', variable: '--font-architects-daughter' },
+  firaCode: { family: 'Fira Code Variable', variable: '--font-fira-code' },
+  jetBrainsMono: { family: 'JetBrains Mono Variable', variable: '--font-jetbrains-mono' },
+  notoSansMono: { family: 'Noto Sans Mono Variable', variable: '--font-noto-mono' },
+  spaceMono: { family: 'Space Mono', variable: '--font-space-mono' }
+} as const;
 
-const fontSans = Geist({
-  subsets: ['latin'],
-  variable: '--font-sans'
-});
-
-const fontMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono'
-});
-
-const fontGoogleSansFlex = Google_Sans_Flex({
-  subsets: ['latin'],
-  variable: '--font-google-sans-flex'
-});
-
-const fontSourceCodePro = Source_Code_Pro({
-  subsets: ['latin'],
-  variable: '--font-source-code-pro'
-});
-
-const fontInstrument = Instrument_Sans({
-  subsets: ['latin'],
-  variable: '--font-instrument'
-});
-
-const fontNotoMono = Noto_Sans_Mono({
-  subsets: ['latin'],
-  variable: '--font-noto-mono'
-});
-
-const fontMullish = Mulish({
-  subsets: ['latin'],
-  variable: '--font-mullish'
-});
-
-const fontInter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter'
-});
-
-const fontArchitectsDaughter = Architects_Daughter({
-  subsets: ['latin'],
-  weight: '400',
-  variable: '--font-architects-daughter'
-});
-
-const fontDMSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-dm-sans'
-});
-
-const fontFiraCode = Fira_Code({
-  subsets: ['latin'],
-  variable: '--font-fira-code'
-});
-
-const fontOutfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit'
-});
-
-const fontSpaceMono = Space_Mono({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-space-mono'
-});
-
-const fontJetBrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains-mono'
-});
-
-const fontMerriweather = Merriweather({
-  subsets: ['latin'],
-  weight: ['300', '400', '700'],
-  variable: '--font-merriweather'
-});
-
-const fontPlayfairDisplay = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair-display'
-});
-
-export const fontVariables = cn(
-  fontSans.variable,
-  fontMono.variable,
-  fontGoogleSansFlex.variable,
-  fontSourceCodePro.variable,
-  fontInstrument.variable,
-  fontNotoMono.variable,
-  fontMullish.variable,
-  fontInter.variable,
-  fontArchitectsDaughter.variable,
-  fontDMSans.variable,
-  fontFiraCode.variable,
-  fontOutfit.variable,
-  fontSpaceMono.variable,
-  fontJetBrainsMono.variable,
-  fontMerriweather.variable,
-  fontPlayfairDisplay.variable
-);
+// Legacy export - no longer needed since fonts are CSS-level
+export const fontVariables = '';

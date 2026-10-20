@@ -11,16 +11,21 @@
   "endOfLine": "lf",
   "experimentalSortTailwindcss": true,
   "ignorePatterns": [
-    ".next/**",
-    "out/**",
+    ".tanstack/**",
+    "dist/**",
     "build/**",
     "node_modules/**",
     "scripts/**",
+    "src/routeTree.gen.ts",
     "pnpm-lock.yaml",
-    "**/*.md",
-    "**/*.mdc",
-    "**/*.mdx",
-    "**/*.yml",
-    "**/*.yaml"
+    "CHANGELOG.md"
+  ],
+  "overrides": [
+    {
+      "files": ["*.md", "*.mdc"],
+      "options": {
+        "proseWrap": "preserve"
+      }
+    }
   ]
 }

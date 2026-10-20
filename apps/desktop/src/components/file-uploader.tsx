@@ -1,7 +1,4 @@
-'use client';
-
 import { Icons } from '@/components/icons';
-import Image from 'next/image';
 import * as React from 'react';
 import Dropzone, { type DropzoneProps, type FileRejection } from 'react-dropzone';
 import { toast } from 'sonner';
@@ -198,7 +195,7 @@ export function FileUploader(props: FileUploaderProps) {
             )}
             {...dropzoneProps}
           >
-            <input {...getInputProps()} aria-label='Upload files' />
+            <input {...getInputProps()} />
             {isDragActive ? (
               <div className='flex flex-col items-center justify-center gap-4 sm:px-5'>
                 <div className='rounded-full border border-dashed p-3'>
@@ -257,7 +254,7 @@ function FileCard({ file, progress, onRemove }: FileCardProps) {
     <div className='relative flex items-center space-x-4'>
       <div className='flex flex-1 space-x-4'>
         {isFileWithPreview(file) ? (
-          <Image
+          <img
             src={file.preview}
             alt={file.name}
             width={48}

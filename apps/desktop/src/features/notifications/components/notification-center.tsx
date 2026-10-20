@@ -1,21 +1,19 @@
-'use client';
-
 import { Icons } from '@/components/icons';
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { NotificationCard } from '@/components/ui/notification-card';
 import { useNotificationStore } from '../utils/store';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@tanstack/react-router';
 
 const MAX_VISIBLE = 5;
 
 const actionRoutes: Record<string, string> = {
-  view: '/dashboard/workspaces',
+  view: '/dashboard/overview',
   'view-product': '/dashboard/product',
-  billing: '/dashboard/billing',
+  billing: '/dashboard/overview',
   open: '/dashboard/kanban',
   'open-chat': '/dashboard/chat'
 };
@@ -28,18 +26,20 @@ export function NotificationCenter() {
 
   return (
     <Popover>
-      <PopoverTrigger render={<Button variant='ghost' size='icon' className='relative h-8 w-8' />}>
-        <Icons.notification className='h-4 w-4' />
-        {count > 0 && (
-          <span className='bg-destructive text-destructive-foreground absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-medium'>
-            {count > 9 ? '9+' : count}
-          </span>
-        )}
-        <span className='sr-only'>Notifications</span>
+      <PopoverTrigger asChild>
+        <Button variant='ghost' size='icon' className='relative h-8 w-8'>
+          <Icons.notification className='h-4 w-4' />
+          {count > 0 && (
+            <span className='bg-destructive text-destructive-foreground absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-medium'>
+              {count > 9 ? '9+' : count}
+            </span>
+          )}
+          <span className='sr-only'>Notifications</span>
+        </Button>
       </PopoverTrigger>
       <PopoverContent align='end' className='w-[calc(100vw-2rem)] p-0 sm:w-[380px]' sideOffset={8}>
-        <div className='flex items-center justify-between px-4 pt-3'>
-          <Link href='/dashboard/notifications' className='group flex items-center gap-1'>
+        <div className='flex items-center justify-between px-4 py-3'>
+          <Link to='/dashboard/notifications' className='group flex items-center gap-1'>
             <h4 className='text-sm font-semibold group-hover:underline'>Notifications</h4>
             <Icons.chevronRight className='text-muted-foreground h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5' />
           </Link>
@@ -84,7 +84,7 @@ export function NotificationCenter() {
                     const route = actionRoutes[actionId];
                     if (route) {
                       markAsRead(notifId);
-                      router.push(route);
+                      router.navigate({ to: route });
                     }
                   }}
                 />

@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';

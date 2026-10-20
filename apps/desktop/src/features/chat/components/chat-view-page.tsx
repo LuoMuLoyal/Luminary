@@ -1,5 +1,3 @@
-'use client';
-
 import { Messenger } from './messenger';
 
 export default function ChatViewPage() {

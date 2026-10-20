@@ -1,5 +1,3 @@
-'use client';
-
 import { FileUploader } from '@/components/file-uploader';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import { useFieldContext, useFieldInvalid, type BaseFieldProps } from '@/lib/form-context';

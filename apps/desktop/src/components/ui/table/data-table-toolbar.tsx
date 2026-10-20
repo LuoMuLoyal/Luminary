@@ -1,5 +1,3 @@
-'use client';
-
 import type { Column, Table } from '@tanstack/react-table';
 import * as React from 'react';
 
@@ -79,8 +77,8 @@ function DataTableToolbarFilter<TData>({ column }: DataTableToolbarFilterProps<T
         case 'text':
           return (
             <Input
+              aria-label={columnMeta.label ?? column.id}
               placeholder={columnMeta.placeholder ?? columnMeta.label}
-              aria-label={columnMeta.label ?? 'Filter'}
               value={(column.getFilterValue() as string) ?? ''}
               onChange={(event) => column.setFilterValue(event.target.value)}
               className='h-8 w-40 lg:w-56'
@@ -91,10 +89,10 @@ function DataTableToolbarFilter<TData>({ column }: DataTableToolbarFilterProps<T
           return (
             <div className='relative'>
               <Input
+                aria-label={columnMeta.label ?? column.id}
                 type='number'
                 inputMode='numeric'
                 placeholder={columnMeta.placeholder ?? columnMeta.label}
-                aria-label={columnMeta.label ?? 'Filter'}
                 value={(column.getFilterValue() as string) ?? ''}
                 onChange={(event) => column.setFilterValue(event.target.value)}
                 className={cn('h-8 w-[120px]', columnMeta.unit && 'pr-8')}

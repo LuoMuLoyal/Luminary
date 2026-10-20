@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { revalidateLogic, useStore } from '@tanstack/react-form';
 import { toast } from 'sonner';

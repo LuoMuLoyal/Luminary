@@ -1,5 +1,3 @@
-'use client';
-
 import { useCallback, useRef } from 'react';
 import { Kanban, KanbanBoard as KanbanBoardPrimitive, KanbanOverlay } from '@/components/ui/kanban';
 import { useTaskStore } from '../utils/store';
@@ -27,7 +25,7 @@ export function KanbanBoard() {
         autoScroll={false}
       >
         <div className='w-full overflow-x-auto rounded-md pb-4'>
-          <KanbanBoardPrimitive className='flex flex-col items-start gap-4 md:flex-row'>
+          <KanbanBoardPrimitive className='flex flex-col items-start gap-4 md:flex-row md:gap-0'>
             {Object.entries(columns).map(([columnValue, tasks]) => (
               <TaskColumn key={columnValue} value={columnValue} tasks={tasks} />
             ))}

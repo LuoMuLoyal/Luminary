@@ -1,5 +1,3 @@
-'use client';
-
 import MultiStepProductForm from './multi-step-product-form';
 
 export default function FormsShowcasePage() {

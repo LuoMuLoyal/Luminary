@@ -1,6 +1,4 @@
-'use client';
-
-import { usePathname } from 'next/navigation';
+import { useLocation } from '@tanstack/react-router';
 import { useMemo } from 'react';
 
 type BreadcrumbItem = {
@@ -23,7 +21,7 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
 };
 
 export function useBreadcrumbs() {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
 
   const breadcrumbs = useMemo(() => {
     // Check if we have a custom mapping for this exact path

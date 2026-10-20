@@ -1,5 +1,3 @@
-'use client';
-
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
 
 import { DEFAULT_THEME } from './theme.config';

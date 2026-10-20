@@ -1,5 +1,3 @@
-'use client';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -18,7 +16,7 @@ import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import { VariantProps, cva } from 'class-variance-authority';
 import { Icons } from '@/components/icons';
-import { usePathname } from 'next/navigation';
+import { useLocation } from '@tanstack/react-router';
 import * as React from 'react';
 
 const INFOBAR_WIDTH = '22rem';
@@ -84,7 +82,7 @@ function InfobarProvider({
   const [content, setContent] = React.useState<InfobarContent | null>(null);
   const [contentPathname, setContentPathname] = React.useState<string | null>(null);
   const [isPathnameChanging, setIsPathnameChanging] = React.useState(false);
-  const pathname = usePathname();
+  const { pathname } = useLocation();
 
   // This is the internal state of the infobar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -197,7 +195,7 @@ function InfobarProvider({
 
   return (
     <InfobarContext.Provider value={contextValue}>
-      <TooltipProvider delay={0}>
+      <TooltipProvider delayDuration={0}>
         <div
           data-slot='infobar-wrapper'
           style={
@@ -554,7 +552,7 @@ function InfobarMenuButton({
 
   const button = useRender({
     defaultTagName: 'button',
-    render: !tooltip ? render : <TooltipTrigger render={render} />,
+    render,
     props: mergeProps<'button'>(
       {
         'data-slot': 'infobar-menu-button',
@@ -579,7 +577,7 @@ function InfobarMenuButton({
 
   return (
     <Tooltip>
-      {button}
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
       <TooltipContent
         side='right'
         align='center'

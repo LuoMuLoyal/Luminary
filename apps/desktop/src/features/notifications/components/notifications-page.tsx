@@ -1,17 +1,15 @@
-'use client';
-
 import { Icons } from '@/components/icons';
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import { NotificationCard } from '@/components/ui/notification-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@tanstack/react-router';
 import { useNotificationStore } from '../utils/store';
 
 const actionRoutes: Record<string, string> = {
-  view: '/dashboard/workspaces',
+  view: '/dashboard/overview',
   'view-product': '/dashboard/product',
-  billing: '/dashboard/billing',
+  billing: '/dashboard/overview',
   open: '/dashboard/kanban',
   'open-chat': '/dashboard/chat'
 };
@@ -50,7 +48,7 @@ export default function NotificationsPage() {
               const route = actionRoutes[actionId];
               if (route) {
                 markAsRead(notifId);
-                router.push(route);
+                router.navigate({ to: route });
               }
             }}
           />

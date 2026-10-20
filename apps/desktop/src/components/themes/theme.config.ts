@@ -10,8 +10,8 @@ export const THEMES = [
     value: 'claude'
   },
   {
-    name: 'Discord',
-    value: 'discord'
+    name: 'Neobrutualism',
+    value: 'neobrutualism'
   },
   {
     name: 'Supabase',

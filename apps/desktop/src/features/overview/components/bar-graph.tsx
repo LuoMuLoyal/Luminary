@@ -1,5 +1,3 @@
-'use client';
-
 import { Bar, BarChart, XAxis } from 'recharts';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

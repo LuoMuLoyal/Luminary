@@ -1,5 +1,3 @@
-'use client';
-
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { useFieldContext, type BaseFieldProps } from '@/lib/form-context';

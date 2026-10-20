@@ -1,8 +1,6 @@
-'use client';
-
 import { useSuspenseQuery } from '@tanstack/react-query';
 import type { Product } from '../api/types';
-import { notFound } from 'next/navigation';
+import { notFound } from '@tanstack/react-router';
 import ProductForm from './product-form';
 import { productByIdOptions } from '../api/queries';
 

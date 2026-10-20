@@ -1,5 +1,3 @@
-'use client';
-
 import { FormEvent, useEffect, useRef } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import type { Attachment, Conversation } from '../utils/types';

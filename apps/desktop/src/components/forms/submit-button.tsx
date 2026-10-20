@@ -1,28 +1,21 @@
-'use client';
-
 import * as React from 'react';
-import { LoadingButton } from '@/components/ui/loading-button';
+import type { VariantProps } from 'class-variance-authority';
+import { Button, type buttonVariants } from '@/components/ui/button';
 import { useFormContext } from '@/lib/form-context';
 
-/** Submit button that shows a no-layout-shift spinner while the form submits. */
+/** Submit button that disables while the form is submitting. */
 export function SubmitButton({
   children,
-  disabled,
   ...props
-}: React.ComponentProps<typeof LoadingButton>) {
+}: React.ComponentProps<'button'> & VariantProps<typeof buttonVariants>) {
   const form = useFormContext();
 
   return (
     <form.Subscribe selector={(state) => state.isSubmitting}>
       {(isSubmitting) => (
-        <LoadingButton
-          type='submit'
-          {...props}
-          loading={isSubmitting}
-          disabled={disabled || isSubmitting}
-        >
+        <Button {...props} type='submit' disabled={props.disabled || isSubmitting}>
           {children}
-        </LoadingButton>
+        </Button>
       )}
     </form.Subscribe>
   );
