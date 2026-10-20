@@ -9,7 +9,7 @@ Luminary/
 ├── apps/
 │   ├── site/        # 官网 + 文档站（静态导出 → out/）
 │   ├── personal/    # 个人网站（静态导出 → out/）
-│   └── desktop/     # 桌面客户端（静态导出 → out/，由 src-tauri/ 打包）
+│   └── desktop/     # 桌面客户端（TanStack Start SPA → dist/client，由 src-tauri/ 打包）
 ├── packages/
 │   └── sync/        # 两仓文档同步与构建门禁
 ├── turbo.jsonc      # 任务图（含各条约束的理由）
@@ -22,13 +22,14 @@ Luminary/
 |---|---|---|---|
 | `site` | `output: 'export'` → `out/` | 上传 CDN | `devluo.com/luminous/` |
 | `personal` | `output: 'export'` → `out/` | 上传 CDN | `devluo.com/` |
-| `desktop` | `output: 'export'` → `out/` | Tauri 内嵌进安装包 | 无 HTTP 路由 |
+| `desktop` | TanStack Start SPA → `dist/client/` | Tauri 内嵌进安装包 | 无 HTTP 路由 |
 
-三个 app **都是静态导出**。`desktop` 之所以也必须是静态，不是取舍而是硬约束：
+三个 app 都**只产出静态文件**：`site` / `personal` 用 Next 的 `output: 'export'`，
+`desktop` 用 TanStack Start 的 SPA 模式。桌面端没有 Node 服务端，不是取舍而是硬约束：
 Tauri 官方明确"不支持基于服务端的方案"（见 https://tauri.app/start/frontend/nextjs/）。
-桌面端需要"服务端"能力的部分（认证、请求中转）由 **Rust 层**承担，不是 Node。
+需要"服务端"能力的部分（认证、请求中转）由 **Rust 层**承担。
 
-三者的差别在**分发方式**，不在渲染方式。
+三者的差别在**分发方式与渲染方式**：前两者预渲染成 HTML，`desktop` 是客户端 SPA。
 
 ## 站点拓扑与部署
 
@@ -73,10 +74,10 @@ pnpm --filter @luminary/site build
 ```
 
 桌面端由 Tauri 驱动（`beforeDevCommand` / `beforeBuildCommand` 已配好，
-会自动带上 Next 的 dev / build）：
+会自动带上 Vite 的 dev / build）：
 
 ```bash
-pnpm --filter @luminary/desktop tauri:dev     # 起 next dev + 桌面窗口
+pnpm --filter @luminary/desktop tauri:dev     # 起 vite dev + 桌面窗口
 pnpm --filter @luminary/desktop tauri:build   # 打包安装包
 ```
 
@@ -84,9 +85,9 @@ pnpm --filter @luminary/desktop tauri:build   # 打包安装包
 > `pnpm install` 后即可用，**不需要**全局 `cargo install tauri-cli`。
 > Windows 侧 `src-tauri/icons/icon.ico` 已由 `tauri icon` 生成。
 >
-> ⚠️ `tauri dev` 走 `devUrl`（`http://localhost:1420`）不需要静态产物，
-> 现在就能跑；`tauri build` 的前端产物依赖 `output: 'export'`，
-> 而模板的路由树是服务端认证的，**桌面端尚未静态化，`tauri build` 暂时不可用**。
+> 桌面端构建启用 TanStack Start 的 SPA 模式（`vite.config.ts` 的 `spa.enabled`），
+> 产物是 `dist/client/`（`index.html` + `assets/`），由 `frontendDist` 直接内嵌，
+> 不经过 Nitro 或 Node 服务端。需要服务端能力时放在 `src-tauri/` 的 Rust 层。
 
 ## 文档站
 

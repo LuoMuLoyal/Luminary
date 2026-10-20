@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.devluo.luminous",
   "build": {
-    "frontendDist": "../.output/public",
+    "frontendDist": "../dist/client",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build"

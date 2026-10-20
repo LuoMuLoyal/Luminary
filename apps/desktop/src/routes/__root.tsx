@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { createServerFn } from '@tanstack/react-start';
+import { useState } from 'react';
 
 import { Toaster } from '@/components/ui/sonner';
 import { ActiveThemeProvider } from '@/components/themes/active-theme';
@@ -16,15 +16,20 @@ const META_THEME_COLORS = {
   dark: '#09090b'
 };
 
-const getActiveTheme = createServerFn({ method: 'GET' }).handler(async () => {
-  const { getCookie } = await import('@tanstack/react-start/server');
-  const cookieValue = getCookie('active_theme');
-  if (cookieValue) {
-    const isValid = THEMES.some((t) => t.value === cookieValue);
-    if (isValid) return cookieValue;
+function getActiveTheme() {
+  if (typeof document === 'undefined') return DEFAULT_THEME;
+
+  const cookieValue = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('active_theme='))
+    ?.split('=')[1];
+
+  if (cookieValue && THEMES.some((t) => t.value === cookieValue)) {
+    return cookieValue;
   }
+
   return DEFAULT_THEME;
-});
+}
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -42,15 +47,11 @@ export const Route = createRootRouteWithContext<{
       { rel: 'apple-touch-icon', href: '/favicon.svg' }
     ]
   }),
-  loader: async () => {
-    const activeTheme = await getActiveTheme();
-    return { activeTheme };
-  },
   component: RootDocument
 });
 
 function RootDocument() {
-  const { activeTheme } = Route.useLoaderData();
+  const [activeTheme] = useState(() => getActiveTheme());
 
   return (
     <html lang='en' suppressHydrationWarning data-theme={activeTheme}>

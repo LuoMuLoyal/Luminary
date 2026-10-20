@@ -1,6 +1,7 @@
 # 部署说明（对象存储 + CDN）
 
-本仓库三个 app 都是**静态导出**（`output: 'export'`）。本文件说明产物怎么分发。
+本文件说明 Web 端（`site` / `personal`）的 Next 静态导出产物怎么分发。
+`desktop` 同样只产出静态文件，但由 Tauri 打包，不走 CDN。
 
 ## 站点拓扑
 
@@ -161,13 +162,11 @@ npx serve $sim
 
 ## 桌面端
 
-`apps/desktop` 的产物同样来自 `next build`，但**不走 CDN**：
-`tauri build` 会把它打进安装包（`frontendDist: "../out"`）。
+`apps/desktop` 用 TanStack Start 的 SPA 模式构建（`vite.config.ts` 中
+`spa.enabled: true`），`vite build` 产出 `dist/client/`：`index.html` 加
+`assets/`。Tauri 的 `frontendDist` 指向这里，`tauri build` 把它内嵌进安装包，
+**不走 CDN，也不启动 Node 服务端**。
 
-桌面端的 `assetPrefix` 与 `site` 的那个**不是一回事**：
-它只在非生产运行时生效（`isProd ? undefined : 'http://localhost:3002'`），
-作用是让 dev server 的 HMR 资源走绝对地址。生产构建下为空，
-产物走相对路径——这正是 Tauri 内嵌所需。
-
-⚠️ **不要"为了统一"给桌面端加 `basePath`**：Tauri 从本地加载页面，
-加前缀会让资源路径全部失效。
+桌面端资源使用根路径（`/assets/...`），由 Tauri 的本地协议从 `dist/client`
+提供；不要给它加 `base` 或 `basePath` 前缀。需要认证、请求中转等服务端能力时，
+实现放在 `src-tauri/` 的 Rust 层，不要引入 Nitro 或 Next 的 server runtime。
