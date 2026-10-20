@@ -4,7 +4,7 @@ name: desktop
 #
 # ## 与另外两个 workflow 的差别
 #
-# 本 app 有两套构建：Next.js 前端 + Rust 后端，各自会失败。因此本 workflow
+# 本 app 有两套构建：TanStack Start 前端 + Rust 后端，各自会失败。因此本 workflow
 # **分两个 job**，让失败定位到具体一侧，而不是混在一个日志里。
 #
 # ## 为什么只做 `cargo check` 而不做 `tauri build`
@@ -19,11 +19,11 @@ name: desktop
 # 冷编译在 CI 上要数分钟起）。`Swatinem/rust-cache` 按其约定需要指定
 # `workspaces: src-tauri`。
 #
-# ## 前端构建会受 `assetPrefix` 影响吗
+# ## 前端产物形态
 #
-# 不会。`next.config.mjs` 里的 `assetPrefix` 只在**非生产**下生效
-# （`isProd ? undefined : 'http://localhost:3002'`），CI 是 `NODE_ENV=production`，
-# 因此产物走相对路径——这正是 Tauri 内嵌所需的形态。
+# TanStack Start 开启 SPA 模式后，`vite build` 会先预渲染 shell，再输出到
+# `apps/desktop/dist/client/`：入口是 `index.html`，资源在 `assets/`。
+# 不经过 Nitro / Node 服务端——Tauri 直接加载这些静态文件。
 
 on:
   push:
@@ -72,26 +72,35 @@ jobs:
       - name: Lint
         run: pnpm --filter @luminary/desktop lint
 
-      # 静态导出必须成功——Tauri 不支持服务端方案（见 planning §8.6）。
-      # 若产物里出现 `.next/server` 而没有 `out/`，说明 output:'export' 被误删了。
-      - name: 构建（静态导出）
+      - name: Format check
+        run: pnpm --filter @luminary/desktop format:check
+
+      - name: Typecheck
+        run: pnpm --filter @luminary/desktop typecheck
+
+      # SPA 构建必须成功——Tauri 不支持服务端方案（见 planning §8.6）。
+      - name: 构建（SPA）
         run: pnpm --filter @luminary/desktop build
 
       - name: 校验产物形态
         run: |
-          if [ ! -d out ]; then
-            echo "::error::未产出 out/ —— 桌面端必须是静态导出（output: 'export'）"
+          if [ ! -f dist/client/index.html ]; then
+            echo "::error::未产出 dist/client/index.html —— 检查 SPA 配置是否被误删"
             exit 1
           fi
-          echo "out/ 文件数: $(find out -type f | wc -l)"
+          if [ ! -d dist/client/assets ]; then
+            echo "::error::未产出 dist/client/assets/ —— 前端资源不完整"
+            exit 1
+          fi
+          echo "dist/client 文件数: $(find dist/client -type f | wc -l)"
         working-directory: apps/desktop
 
       - name: 上传前端产物
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-out
-          path: apps/desktop/out
+          name: desktop-spa
+          path: apps/desktop/dist/client
           retention-days: 7
 
   rust:
@@ -134,9 +143,9 @@ jobs:
       # 平台资源。Linux 上不需要 .ico，但 macOS 打包需要 .icns——若将来加 macOS 矩阵，
       # 记得补 icons/icon.icns（当前只有 .ico / .png）。
       - name: cargo check
-        run: cargo check --all-targets
+        run: cargo check --all-targets --locked
         working-directory: apps/desktop/src-tauri
 
       - name: clippy
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --all-targets --locked -- -D warnings
         working-directory: apps/desktop/src-tauri
