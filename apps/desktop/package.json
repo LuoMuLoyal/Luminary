@@ -2,9 +2,15 @@
   "name": "@luminary/desktop",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "author": {
-    "name": "Kiran",
-    "url": "https://github.com/Kiranism"
+    "name": "LuoMuLoyal",
+    "url": "https://github.com/LuoMuLoyal"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LuoMuLoyal/Luminary.git",
+    "directory": "apps/desktop"
   },
   "type": "module",
   "scripts": {
