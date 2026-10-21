@@ -1,0 +1,76 @@
+name: CodeQL
+
+# 代码安全分析：用 GitHub 官方语义分析引擎扫注入、路径穿越、不安全反序列化
+# 与凭证泄露等问题。
+#
+# ## 为什么这个仓尤其需要
+#
+# 本仓是 monorepo，三个 app 里有两种高风险形态：
+#   1. `apps/desktop` 的 Rust 层（`src-tauri/`）承担认证与请求中转——Rust 的
+#      内存安全是语言保证的，但**逻辑层**的路径穿越、命令注入、TLS 配置错误
+#      依然存在，CodeQL 的 Rust 分析正是查这些。
+#   2. `site` / `personal` 预渲染时会把 `.md` 正文渲染进 HTML。若渲染管线对
+#      文档内容不做转义，就形成 XSS 面——而文档内容来自另外两个仓库，属于
+#      跨仓不可信输入。
+#
+# ## 语言矩阵
+#
+# `javascript-typescript` 覆盖 apps/site、apps/personal 与 packages/sync；
+# `rust` 覆盖 apps/desktop 下的 src-tauri。Rust 需要真实构建上下文，
+# 因此该行用 build-mode: autobuild 而不是 none。
+#
+# ## 为什么单独定时跑
+#
+# 漏洞规则库每周更新。只在 push 时扫，会让「代码没动但新披露了模式」的情况漏掉。
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # 每周一 03:17 UTC，避开整点高峰
+    - cron: '17 3 * * 1'
+
+concurrency:
+  group: luminary-codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: rust
+            build-mode: autobuild
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: '/language:${{ matrix.language }}'

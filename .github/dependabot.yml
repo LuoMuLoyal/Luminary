@@ -1,0 +1,128 @@
+# Dependabot 配置。
+#
+# ## 本仓的依赖生态
+#
+# polyglot monorepo，三套独立依赖树：
+#
+# | 目录 | 生态 | 是什么 |
+# |---|---|---|
+# | `/` | npm | pnpm workspace：apps/site、apps/personal、apps/desktop、packages/sync |
+# | `/apps/desktop/src-tauri` | cargo | Tauri 的 Rust 后端（认证中转、原生能力） |
+# | `/` | github-actions | .github/workflows 里引用的 action |
+#
+# ## 为什么 npm 只配根目录
+#
+# pnpm workspace 的锁文件只有根目录一份（`pnpm-lock.yaml`），各 app 的
+# `package.json` 声明的版本最终都汇到它。Dependabot 的 npm 生态识别
+# workspace 结构，配根目录即可覆盖全部子包——为每个 app 单配会产生互相
+# 冲突的 PR（改的是同一份 lockfile）。
+#
+# ## 为什么 cargo 必须单配
+#
+# `apps/desktop/src-tauri/Cargo.lock` 是独立锁文件，与 npm 无关。Tauri 的
+# crate 依赖树很深（tauri、wry、reqwest 等），且这些依赖会被编译进桌面安装包
+# 分发到用户机器——漏洞无法靠发新前端修，必须重新发版，所以值得让机器人盯着。
+#
+# ## 频率
+#
+# 月度 + 分组。Dependabot 的 schedule 只有 daily / weekly / monthly 三档，
+# 没有双周。monorepo 的依赖面很宽，月度配分组能把噪音压到可评审的量级。
+# major 升级一律不并入 patch/minor 组，单独开 PR 等人工判断。
+#
+# ## 分组为什么按生态切
+#
+# 同一生态的包往往共享底层（如 React 生态的 react / react-dom / @types/react
+# 必须同版本），拆成多个 PR 会互相阻塞（后合的那个得重解依赖）。合进一条 PR
+# 是一次评审、一次验证。
+
+version: 2
+updates:
+  # ── pnpm workspace（三个 app + packages/sync）─────────────
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      # 依赖升级通常是 chore；带 breaking 的由评审判断
+      prefix: 'chore'
+      include: scope
+    groups:
+      # React 生态：react / react-dom / 类型包必须同版本
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+      # Next.js 与其工具链
+      next:
+        patterns:
+          - 'next'
+          - 'eslint-config-next'
+          - '@next/*'
+      # TanStack（桌面端用 TanStack Start）
+      tanstack:
+        patterns:
+          - '@tanstack/*'
+      # 类型与 lint 工具：低风险，一起升
+      dev-tools:
+        patterns:
+          - 'typescript'
+          - 'eslint*'
+          - 'prettier'
+          - '@types/*'
+          - '@typescript-eslint/*'
+      # 兜底：其余零散包只收 patch/minor；major 各自单独开 PR
+      misc-patch-and-minor:
+        patterns:
+          - '*'
+        update-types:
+          - patch
+          - minor
+
+  # ── Tauri 的 Rust 后端 ───────────────────────────────────
+  - package-ecosystem: cargo
+    directory: '/apps/desktop/src-tauri'
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - rust
+    commit-message:
+      prefix: 'chore'
+      include: scope
+    groups:
+      # tauri 全家桶必须同版本，否则宏与运行时不匹配，编译直接失败
+      tauri:
+        patterns:
+          - 'tauri*'
+          - '@tauri-apps/*'
+      # 兜底：其余 crate 只收 patch/minor
+      misc-patch-and-minor:
+        patterns:
+          - '*'
+        update-types:
+          - patch
+          - minor
+
+  # ── GitHub Actions ───────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: 'chore'
+      include: scope
+    groups:
+      # Actions 都是向后兼容的小版本，合成一条即可
+      github-actions:
+        patterns:
+          - '*'
