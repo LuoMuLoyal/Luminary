@@ -1,6 +1,6 @@
-# Luminous Desktop
+# Lumine
 
-Luminous 桌面客户端：Tauri 2 外壳 + TanStack Start（React）SPA。
+Lumine 药品知识工作台：Tauri 2 外壳 + TanStack Start（React）SPA。
 
 基于 [Kiranism/tanstack-start-dashboard](https://github.com/Kiranism/tanstack-start-dashboard)
 （MIT）搭建，保留其 dashboard 布局、路由、表单、表格、主题与演示数据。
@@ -22,10 +22,10 @@ Luminous 桌面客户端：Tauri 2 外壳 + TanStack Start（React）SPA。
 
 ```bash
 pnpm install
-pnpm --filter @luminary/desktop dev          # 只起前端，http://localhost:1420
-pnpm --filter @luminary/desktop build        # 产出 dist/client/
-pnpm --filter @luminary/desktop tauri:dev    # 前端 + 桌面窗口
-pnpm --filter @luminary/desktop tauri:build  # 打包安装包
+pnpm --filter @luminary/lumine dev          # 只起前端，http://localhost:1420
+pnpm --filter @luminary/lumine build        # 产出 dist/client/
+pnpm --filter @luminary/lumine tauri:dev    # 前端 + 桌面窗口
+pnpm --filter @luminary/lumine tauri:build  # 打包安装包
 ```
 
 `tauri dev` / `tauri build` 会通过 `beforeDevCommand` / `beforeBuildCommand`

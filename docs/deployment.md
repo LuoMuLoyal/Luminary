@@ -11,7 +11,7 @@ devluo.com/luminous/         → site（官网）
 devluo.com/luminous/docs/    → site（文档站）
 ```
 
-桌面端（`apps/desktop`）**不占 HTTP 路由**：产物被 Tauri 内嵌进安装包，
+桌面端（`apps/lumine`）**不占 HTTP 路由**：产物被 Tauri 内嵌进安装包，
 用户装的是应用，不通过浏览器访问。
 
 ## 为什么 `site` 要挂在 `/luminous` 前缀下
@@ -162,7 +162,7 @@ npx serve $sim
 
 ## 桌面端
 
-`apps/desktop` 用 TanStack Start 的 SPA 模式构建（`vite.config.ts` 中
+`apps/lumine` 用 TanStack Start 的 SPA 模式构建（`vite.config.ts` 中
 `spa.enabled: true`），`vite build` 产出 `dist/client/`：`index.html` 加
 `assets/`。Tauri 的 `frontendDist` 指向这里，`tauri build` 把它内嵌进安装包，
 **不走 CDN，也不启动 Node 服务端**。

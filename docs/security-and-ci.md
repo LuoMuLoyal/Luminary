@@ -14,7 +14,7 @@
 | `desktop` | Tauri 安装包 → 用户机器 | **Rust 层的认证与请求中转**；依赖被编译进安装包，漏洞无法靠发新前端修 |
 
 `desktop` 是本仓风险最高的部分：它的认证、请求中转、原生能力都在
-`apps/desktop/src-tauri/` 的 Rust 层，且产物分发到用户设备后无法热修。
+`apps/lumine/src-tauri/` 的 Rust 层，且产物分发到用户设备后无法热修。
 
 ## 自动检查清单
 

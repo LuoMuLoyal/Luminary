@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Luminous",
+  "productName": "Lumine",
   "version": "0.1.0",
-  "identifier": "com.devluo.luminous",
+  "identifier": "com.devluo.lumine",
   "build": {
     "frontendDist": "../dist/client",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Luminous",
+        "title": "Lumine",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,

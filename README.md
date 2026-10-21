@@ -1,6 +1,6 @@
 # Luminary
 
-多产品聚合站的 monorepo：产品官网与文档站、个人网站、Luminous 桌面客户端。
+多产品聚合站的 monorepo：产品官网与文档站、个人网站、Lumine 药品知识工作台。
 
 ## 结构
 
@@ -9,7 +9,7 @@ Luminary/
 ├── apps/
 │   ├── site/        # 官网 + 文档站（静态导出 → out/）
 │   ├── personal/    # 个人网站（静态导出 → out/）
-│   └── desktop/     # 桌面客户端（TanStack Start SPA → dist/client，由 src-tauri/ 打包）
+│   └── lucid/       # Lumine 工作台（TanStack Start SPA → dist/client，由 src-tauri/ 打包）
 ├── packages/
 │   └── sync/        # 两仓文档同步与构建门禁
 ├── turbo.jsonc      # 任务图（含各条约束的理由）
@@ -22,14 +22,14 @@ Luminary/
 |---|---|---|---|
 | `site` | `output: 'export'` → `out/` | 上传 CDN | `devluo.com/luminous/` |
 | `personal` | `output: 'export'` → `out/` | 上传 CDN | `devluo.com/` |
-| `desktop` | TanStack Start SPA → `dist/client/` | Tauri 内嵌进安装包 | 无 HTTP 路由 |
+| `lumine` | TanStack Start SPA → `dist/client/` | Tauri 内嵌进安装包 | 无 HTTP 路由 |
 
 三个 app 都**只产出静态文件**：`site` / `personal` 用 Next 的 `output: 'export'`，
-`desktop` 用 TanStack Start 的 SPA 模式。桌面端没有 Node 服务端，不是取舍而是硬约束：
+`lumine` 用 TanStack Start 的 SPA 模式。桌面端没有 Node 服务端，不是取舍而是硬约束：
 Tauri 官方明确"不支持基于服务端的方案"（见 https://tauri.app/start/frontend/nextjs/）。
 需要"服务端"能力的部分（认证、请求中转）由 **Rust 层**承担。
 
-三者的差别在**分发方式与渲染方式**：前两者预渲染成 HTML，`desktop` 是客户端 SPA。
+三者的差别在**分发方式与渲染方式**：前两者预渲染成 HTML，`lumine` 是客户端 SPA。
 
 ## 站点拓扑与部署
 
@@ -77,11 +77,11 @@ pnpm --filter @luminary/site build
 会自动带上 Vite 的 dev / build）：
 
 ```bash
-pnpm --filter @luminary/desktop tauri:dev     # 起 vite dev + 桌面窗口
-pnpm --filter @luminary/desktop tauri:build   # 打包安装包
+pnpm --filter @luminary/lumine tauri:dev     # 起 vite dev + 桌面窗口
+pnpm --filter @luminary/lumine tauri:build   # 打包安装包
 ```
 
-> `tauri:*` 由 `apps/desktop` 的 `@tauri-apps/cli` devDependency 提供，
+> `tauri:*` 由 `apps/lumine` 的 `@tauri-apps/cli` devDependency 提供，
 > `pnpm install` 后即可用，**不需要**全局 `cargo install tauri-cli`。
 > Windows 侧 `src-tauri/icons/icon.ico` 已由 `tauri icon` 生成。
 >

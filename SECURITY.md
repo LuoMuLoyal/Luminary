@@ -19,7 +19,7 @@ This repository builds and serves the product site, the personal site, and the
 desktop client. The following are in scope:
 
 - Cross-site scripting (XSS) in rendered docs/markdown content
-- Path traversal in the Rust layer (`apps/desktop/src-tauri/`)
+- Path traversal in the Rust layer (`apps/lumine/src-tauri/`)
 - Credential or token leakage in client bundles or logs
 - Insecure deep-link / protocol-handler parameter handling
 - Supply-chain issues in build scripts or release artifacts

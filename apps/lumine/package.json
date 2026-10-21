@@ -1,5 +1,5 @@
 {
-  "name": "@luminary/desktop",
+  "name": "@luminary/lumine",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -10,7 +10,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/LuoMuLoyal/Luminary.git",
-    "directory": "apps/desktop"
+    "directory": "apps/lumine"
   },
   "type": "module",
   "scripts": {
