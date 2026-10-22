@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { ActiveThemeProvider } from '@/components/themes/active-theme';
 import ThemeProvider from '@/components/themes/theme-provider';
 import { DEFAULT_THEME, THEMES } from '@/components/themes/theme.config';
+import { SessionBootstrap } from '@/features/auth/session-bootstrap';
 import { seo } from '@/lib/seo';
 
 import appCss from '@/styles/globals.css?url';
@@ -78,6 +79,7 @@ function RootDocument() {
           enableColorScheme
         >
           <ActiveThemeProvider initialTheme={activeTheme}>
+            <SessionBootstrap />
             <Toaster />
             <Outlet />
           </ActiveThemeProvider>
