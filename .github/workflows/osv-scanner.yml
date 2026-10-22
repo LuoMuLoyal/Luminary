@@ -12,7 +12,7 @@ name: OSV-Scanner
 #
 # ## 为什么这个仓尤其需要
 #
-# `apps/desktop` 由 Tauri 打包进安装包分发到用户机器，Rust 侧依赖（含
+# `apps/lumine` 由 Tauri 打包进安装包分发到用户机器，Rust 侧依赖（含
 # 大量 crate）的漏洞无法靠发布新前端修——必须重新发版。
 #
 # ## 两个 job 为什么分开

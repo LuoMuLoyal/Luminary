@@ -6,7 +6,7 @@ name: CodeQL
 # ## 为什么这个仓尤其需要
 #
 # 本仓是 monorepo，三个 app 里有两种高风险形态：
-#   1. `apps/desktop` 的 Rust 层（`src-tauri/`）承担认证与请求中转——Rust 的
+#   1. `apps/lumine` 的 Rust 层（`src-tauri/`）承担原生能力与请求中转——Rust 的
 #      内存安全是语言保证的，但**逻辑层**的路径穿越、命令注入、TLS 配置错误
 #      依然存在，CodeQL 的 Rust 分析正是查这些。
 #   2. `site` / `personal` 预渲染时会把 `.md` 正文渲染进 HTML。若渲染管线对
@@ -16,7 +16,7 @@ name: CodeQL
 # ## 语言矩阵
 #
 # `javascript-typescript` 覆盖 apps/site、apps/personal 与 packages/sync；
-# `rust` 覆盖 apps/desktop 下的 src-tauri。
+# `rust` 覆盖 apps/lumine 下的 src-tauri。
 #
 # 两种语言都用 `build-mode: none`：CodeQL 的 Rust 提取器**不支持** `autobuild`，
 # 用它会在 `database init` 阶段直接 fatal（`Rust does not support the autobuild

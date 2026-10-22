@@ -6,8 +6,8 @@
 #
 # | 目录 | 生态 | 是什么 |
 # |---|---|---|
-# | `/` | npm | pnpm workspace：apps/site、apps/personal、apps/desktop、packages/sync |
-# | `/apps/desktop/src-tauri` | cargo | Tauri 的 Rust 后端（认证中转、原生能力） |
+# | `/` | npm | pnpm workspace：apps/site、apps/personal、apps/lumine、packages/sync |
+# | `/apps/lumine/src-tauri` | cargo | Tauri 的 Rust 后端（认证中转、原生能力） |
 # | `/` | github-actions | .github/workflows 里引用的 action |
 #
 # ## 为什么 npm 只配根目录
@@ -19,7 +19,7 @@
 #
 # ## 为什么 cargo 必须单配
 #
-# `apps/desktop/src-tauri/Cargo.lock` 是独立锁文件，与 npm 无关。Tauri 的
+# `apps/lumine/src-tauri/Cargo.lock` 是独立锁文件，与 npm 无关。Tauri 的
 # crate 依赖树很深（tauri、wry、reqwest 等），且这些依赖会被编译进桌面安装包
 # 分发到用户机器——漏洞无法靠发新前端修，必须重新发版，所以值得让机器人盯着。
 #
@@ -85,7 +85,7 @@ updates:
 
   # ── Tauri 的 Rust 后端 ───────────────────────────────────
   - package-ecosystem: cargo
-    directory: '/apps/desktop/src-tauri'
+    directory: '/apps/lumine/src-tauri'
     schedule:
       interval: monthly
     open-pull-requests-limit: 5

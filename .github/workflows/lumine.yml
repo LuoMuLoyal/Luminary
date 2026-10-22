@@ -1,11 +1,15 @@
-name: desktop
+name: lumine
 
-# 桌面客户端的构建门禁。
+# Lumine 桌面客户端的构建门禁。
 #
 # ## 与另外两个 workflow 的差别
 #
-# 本 app 有两套构建：TanStack Start 前端 + Rust 后端，各自会失败。因此本 workflow
+# 本 app 有两套构建：TanStack Start 前端 + Rust 外壳，各自会失败。因此本 workflow
 # **分两个 job**，让失败定位到具体一侧，而不是混在一个日志里。
+#
+# 注意目录已从 pps/desktop 改名为 pps/lumine（commit 936c9d2）。本文件此前
+# 仍指向旧路径，导致 paths 过滤不命中、--filter @luminary/desktop 解析不到包、
+# working-directory 指向不存在的目录——桌面端的 CI 门禁事实上停了。
 #
 # ## 为什么只做 `cargo check` 而不做 `tauri build`
 #
@@ -22,28 +26,28 @@ name: desktop
 # ## 前端产物形态
 #
 # TanStack Start 开启 SPA 模式后，`vite build` 会先预渲染 shell，再输出到
-# `apps/desktop/dist/client/`：入口是 `index.html`，资源在 `assets/`。
+# `apps/lumine/dist/client/`：入口是 `index.html`，资源在 `assets/`。
 # 不经过 Nitro / Node 服务端——Tauri 直接加载这些静态文件。
 
 on:
   push:
     branches: [main]
     paths:
-      - "apps/desktop/**"
+      - "apps/lumine/**"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "package.json"
       - "turbo.jsonc"
-      - ".github/workflows/desktop.yml"
+      - ".github/workflows/lumine.yml"
   pull_request:
     branches: [main]
     paths:
-      - "apps/desktop/**"
+      - "apps/lumine/**"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "package.json"
       - "turbo.jsonc"
-      - ".github/workflows/desktop.yml"
+      - ".github/workflows/lumine.yml"
   workflow_dispatch:
 
 jobs:
@@ -70,17 +74,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm --filter @luminary/desktop lint
+        run: pnpm --filter @luminary/lumine lint
 
       - name: Format check
-        run: pnpm --filter @luminary/desktop format:check
+        run: pnpm --filter @luminary/lumine format:check
 
       - name: Typecheck
-        run: pnpm --filter @luminary/desktop typecheck
+        run: pnpm --filter @luminary/lumine typecheck
 
       # SPA 构建必须成功——Tauri 不支持服务端方案（见 planning §8.6）。
       - name: 构建（SPA）
-        run: pnpm --filter @luminary/desktop build
+        run: pnpm --filter @luminary/lumine build
 
       - name: 校验产物形态
         run: |
@@ -93,14 +97,14 @@ jobs:
             exit 1
           fi
           echo "dist/client 文件数: $(find dist/client -type f | wc -l)"
-        working-directory: apps/desktop
+        working-directory: apps/lumine
 
       - name: 上传前端产物
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-spa
-          path: apps/desktop/dist/client
+          name: lumine-spa
+          path: apps/lumine/dist/client
           retention-days: 7
 
   rust:
@@ -137,15 +141,15 @@ jobs:
       - name: 缓存 Rust 产物
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: apps/desktop/src-tauri
+          workspaces: apps/lumine/src-tauri
 
       # ⚠️ tauri-build 在本步骤会读 tauri.conf.json 并生成 Windows Resource 之类的
       # 平台资源。Linux 上不需要 .ico，但 macOS 打包需要 .icns——若将来加 macOS 矩阵，
       # 记得补 icons/icon.icns（当前只有 .ico / .png）。
       - name: cargo check
         run: cargo check --all-targets --locked
-        working-directory: apps/desktop/src-tauri
+        working-directory: apps/lumine/src-tauri
 
       - name: clippy
         run: cargo clippy --all-targets --locked -- -D warnings
-        working-directory: apps/desktop/src-tauri
+        working-directory: apps/lumine/src-tauri
