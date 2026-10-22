@@ -16,8 +16,11 @@ name: CodeQL
 # ## 语言矩阵
 #
 # `javascript-typescript` 覆盖 apps/site、apps/personal 与 packages/sync；
-# `rust` 覆盖 apps/desktop 下的 src-tauri。Rust 需要真实构建上下文，
-# 因此该行用 build-mode: autobuild 而不是 none。
+# `rust` 覆盖 apps/desktop 下的 src-tauri。
+#
+# 两种语言都用 `build-mode: none`：CodeQL 的 Rust 提取器**不支持** `autobuild`，
+# 用它会在 `database init` 阶段直接 fatal（`Rust does not support the autobuild
+# build mode`），只有 `none` 一种可选。
 #
 # ## 为什么单独定时跑
 #
@@ -57,7 +60,7 @@ jobs:
           - language: javascript-typescript
             build-mode: none
           - language: rust
-            build-mode: autobuild
+            build-mode: none
 
     steps:
       - name: Checkout
