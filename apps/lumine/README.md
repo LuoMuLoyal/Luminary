@@ -61,3 +61,21 @@ src-tauri/         # Rust 外壳、图标、Tauri 配置
 - 根路由不使用 `createServerFn` 读取主题 cookie；主题在客户端从
   `document.cookie` 读取，保证静态 SPA 下可用。
 - 当前页面数据仍以模板自带的演示数据为主，接入 Lucent API 前需要替换。
+
+## 认证
+
+认证走 **Lucent 的 httpOnly cookie 会话**（`/api/v1/auth/session/*` 与 `/api/v1/auth/me`），
+Web 与桌面两个宿主共用同一条路径：
+
+- token 由浏览器以 `Set-Cookie` 收下，**前端代码读不到**，所以 `session.ts` 里
+  不存 token，只存「用户是谁 + 登录态三态（unknown / authenticated / anonymous）」。
+- `unknown` 表达「还没问过服务端」。SPA 没有服务端可判定登录态，把它当成 false
+  会让每次刷新先闪一下登录页——这是三态而非布尔的原因。
+- 路由守卫在 `beforeLoad` 里做（`src/routes/dashboard.tsx`），并等 `unknown` 出结果；
+  未登录时带 `redirect` 参数跳登录页，登录后回跳原路径。
+- 请求经由 `src/lib/api-client.ts`，默认 `credentials: 'include'`，路径自动补 `/api/v1`。
+
+配置见 `env.example.txt`。**Lucent 侧必须把本客户端的来源加进 `CORS_ORIGIN`**
+（开发期 `http://localhost:1420`），否则预检失败且 Lucent 日志里看不到请求。
+
+旧版模板的 Clerk 残留已全部清除，仓库内无任何 Clerk 依赖或配置。
