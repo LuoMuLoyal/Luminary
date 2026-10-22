@@ -56,5 +56,3 @@ coverage
 tmp
 temp
 
-# clerk configuration (can include secrets)
-/.clerk/
