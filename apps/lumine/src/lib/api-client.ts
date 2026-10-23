@@ -1,39 +1,90 @@
-import { ApiError, parseProblemDetails } from '@/lib/problem-details';
-
 /**
- * Lucent HTTP 客户端。
+ * Lucent API 客户端 —— **由 OpenAPI 契约驱动的类型化客户端**。
  *
- * ## 为什么不用 openapi 生成的客户端
+ * ## 为什么用 `openapi-fetch` 而不是手写 fetch 包装
  *
- * Lucent 的契约源是 `Lucent/docs/reference/generated/openapi.json`，但同工作区的
- * `Luminous` 用的是 dart-dio 生成器、生成物体量很大。Lumine 目前只需要 auth 与后续
- * 少量只读查询，先手写薄封装；等接口面铺开再考虑生成。**契约仍以后端为准**：
- * 类型定义在 `features/<domain>/api/types.ts` 里与 OpenAPI 对齐。
+ * 契约的唯一事实源是 Lucent 的 `docs/reference/generated/openapi.json`。
+ * 手写请求层等于维护第二份契约：路径拼错、字段改名、响应形状变化都不会在
+ * 编译期暴露。`openapi-fetch` 直接消费生成的 `paths`，**路径与载荷都由后端
+ * 契约推导**——写错路径是类型错误，漏字段是类型错误。
  *
- * ## 三条硬约束
+ * ## 错误仍然是 RFC 9457 Problem Details
  *
- * 1. **header 必须合并，不能覆盖。** 旧实现把 `...options` 展开在 `headers` 之后，
- *    调用方一传 headers，默认头就被整体替换（典型表现：POST 丢了
- *    `Content-Type`，服务端当成表单处理）。
- * 2. **错误必须带 `code`。** 认证分支（需要验证码 / 验证码错 / 凭据错）只能靠
- *    Lucent 的稳定错误码判断，所以统一抛 {@link ApiError}，不让调用方各自摸响应体。
- * 3. **cookie 默认带上。** 会话走 httpOnly cookie（见 `api-config.ts`）。
+ * Lucent 的错误体是 `application/problem+json`（ADR-0012），认证侧必须拿到
+ * 稳定 `code` 才能分支（`AUTH_CAPTCHA_REQUIRED` / `AUTH_WRONG_PASSWORD` ...）。
+ * 所以这里注册一个 `onResponse` 中间件：非 2xx 时解析成 `ApiError` 并抛出，
+ * 调用方只写 try/catch，不必每次判断 `error` 字段。
+ *
+ * ## cookie
+ *
+ * 会话走 httpOnly cookie（`/auth/session/*`），因此全局 `credentials: 'include'`。
+ * 这不是可选项——漏掉它浏览器不会带 cookie，表现是「登录成功但立刻 401」。
  */
 
-export interface ApiRequestOptions {
-  /** 请求方法，默认 `GET`。 */
-  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
-  /** JSON 请求体；`undefined` 时不发送 body，也不设置 `Content-Type`。 */
-  body?: unknown;
-  /** 额外的请求头；与默认头**合并**（同名时以这里的为准）。 */
-  headers?: Record<string, string>;
-  /** `AbortSignal`，用于超时与组件卸载时取消。 */
-  signal?: AbortSignal;
-  /** 覆盖 cookie 策略；默认取 `api-config.ts` 的全局设置。 */
-  credentials?: RequestCredentials;
+import createClient, { type Middleware } from 'openapi-fetch';
+
+import { ApiError, parseProblemDetails } from '@/lib/problem-details';
+import type { paths } from '@/lib/generated/lucent-api';
+import { lucentApiBase, lucentCredentialsInclude } from './api-config';
+
+/**
+ * 把非 2xx 响应归一成 {@link ApiError}。
+ *
+ * 放在中间件里而不是每个调用点：认证分支要用 `code`，漏一处就会出现
+ * 「这里报 401、那里报 200 但没数据」的不一致。
+ */
+const problemDetailsMiddleware: Middleware = {
+  async onResponse({ response }) {
+    if (response.ok) return response;
+
+    // 204 之类没有体，`json()` 会抛；先探 content-type 再决定怎么读。
+    const contentType = response.headers.get('content-type') ?? '';
+    let payload: unknown = null;
+
+    try {
+      payload = contentType.includes('json')
+        ? await response.clone().json()
+        : await response.clone().text();
+    } catch {
+      // 读不出来就退回纯状态码，解析器对畸形输入是宽容的。
+      payload = null;
+    }
+
+    throw new ApiError(parseProblemDetails(response.status, payload));
+  }
+};
+
+/**
+ * 全局客户端。业务模块只从这里取，不各自 `createClient`——
+ * 否则 credentials 与错误语义会在各模块间漂移。
+ */
+/**
+ * 创建客户端。
+ *
+ * `fetch` 可注入是**为测试而设计的接缝**：`openapi-fetch` 在创建时就把
+ * `fetch` 捕获进闭包，事后 `vi.stubGlobal('fetch', ...)` 不会生效。
+ * 与其在测试里玩模块加载顺序，不如把依赖显式传进来。
+ */
+export function createLucentClient(options: { fetch?: typeof fetch } = {}) {
+  const client = createClient<paths>({
+    baseUrl: lucentApiBase(),
+    credentials: lucentCredentialsInclude() ? 'include' : 'omit',
+    ...(options.fetch !== undefined && { fetch: options.fetch })
+  });
+
+  client.use(problemDetailsMiddleware);
+  return client;
 }
 
-/** 把字节流之外的失败（网络中断、DNS、CORS 预检被拦）与「服务端明确返回的错误」分开。 */
+/** 业务模块使用的单例。测试请用 {@link createLucentClient} 注入假 fetch。 */
+export const lucent = createLucentClient();
+
+/**
+ * 网络层失败（请求没发出去 / 响应没回来）。
+ *
+ * 与 {@link ApiError} 分开：前者是「连不上」，后者是「服务端明确拒绝」。
+ * 把两者混成一个类型会让 UI 只能给一句含糊的文案。
+ */
 export class NetworkError extends Error {
   readonly cause: unknown;
 
@@ -44,65 +95,33 @@ export class NetworkError extends Error {
   }
 }
 
-async function readBody(response: Response): Promise<unknown> {
-  if (response.status === 204) return null;
-
-  const text = await response.text();
-  if (text.length === 0) return null;
-
-  const contentType = response.headers.get('content-type') ?? '';
-  // 非 JSON 的响应体（例如网关的 HTML 错误页）原样交给解析器回落，不在这里抛。
-  if (!contentType.includes('json')) return text;
-
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return text;
-  }
-}
-
 /**
- * 发一个请求并把错误归一成 {@link ApiError}。
+ * 把 `openapi-fetch` 的「零值风格」返回值收敛成「成功即数据、失败即异常」。
  *
- * @param path 业务路径，例如 `/auth/login`（不含 `/api/v1`，由 `lucentUrl` 负责）。
- * @throws {ApiError} 服务端返回了 4xx / 5xx。
- * @throws {NetworkError} 请求根本没到服务端（断网、CORS 被拦、超时取消）。
+ * `openapi-fetch` 不抛错，返回 `{ data, error, response }`。业务代码里
+ * 大多数路径只关心成功值，所以包一层；需要精细处理响应头的地方可以直接用
+ * {@link lucent}（`/auth/session/*` 的 `expiresIn` 已在响应体里，不必读头）。
+ *
+ * @param result `openapi-fetch` 的返回值。
+ * @throws {ApiError} 非 2xx（由中间件抛出前已转换）。
+ * @throws {NetworkError} 请求未到达服务端。
  */
-export async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, headers, signal, credentials } = options;
-
-  const mergedHeaders: Record<string, string> = {
-    Accept: 'application/json',
-    // 显式合并：调用方同名头覆盖默认值，其余默认值保留。
-    ...headers
-  };
-
-  // 只有带 body 时才声明 Content-Type：GET/DELETE 带上它会让部分中间层
-  // 触发不必要的预检。
-  if (body !== undefined && mergedHeaders['Content-Type'] === undefined) {
-    mergedHeaders['Content-Type'] = 'application/json';
+export async function expectData<T>(result: {
+  data?: T;
+  error?: unknown;
+  response: Response;
+}): Promise<T> {
+  if (result.error !== undefined) {
+    // 中间件已经抛过；走到这里说明中间件未命中（例如自定义 response 处理）。
+    throw new ApiError(parseProblemDetails(result.response.status, result.error));
   }
 
-  let response: Response;
-  try {
-    const { lucentCredentialsInclude, lucentUrl } = await import('@/lib/api-config');
-    response = await fetch(lucentUrl(path), {
-      method,
-      headers: mergedHeaders,
-      credentials: credentials ?? (lucentCredentialsInclude() ? 'include' : 'omit'),
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-      ...(signal ? { signal } : {})
-    });
-  } catch (error) {
-    // fetch 只在「请求没发出去」或「响应没回来」时抛；CORS 预检失败也在这里。
-    throw new NetworkError(`Request to ${path} failed before a response arrived`, error);
+  if (result.data === undefined) {
+    throw new NetworkError(
+      `Request to ${result.response.url || 'Lucent'} returned no body`,
+      undefined
+    );
   }
 
-  const payload = await readBody(response);
-
-  if (!response.ok) {
-    throw new ApiError(parseProblemDetails(response.status, payload));
-  }
-
-  return payload as T;
+  return result.data;
 }

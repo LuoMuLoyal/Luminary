@@ -2,52 +2,51 @@ import { describe, expect, it } from 'vitest';
 
 import { ApiError, parseProblemDetails } from '@/lib/problem-details';
 import { NetworkError } from '@/lib/api-client';
-import { describeAuthError, isSessionExpired } from './errors';
+import { authErrorKey, isSessionExpired } from './errors';
 
 function apiError(status: number, code: string | null): ApiError {
   return new ApiError(parseProblemDetails(status, code === null ? {} : { code }));
 }
 
-describe('describeAuthError', () => {
-  it('凭据失败给统一文案，不暗示账号是否存在', () => {
-    const copy = describeAuthError(apiError(401, 'AUTH_WRONG_PASSWORD'));
-    expect(copy).toBe('邮箱或密码、验证码不正确');
+describe('authErrorKey', () => {
+  it('凭据失败映射到同一句文案（不暗示账号是否存在）', () => {
+    expect(authErrorKey(apiError(401, 'AUTH_WRONG_PASSWORD'))).toBe('error.wrongCredentials');
   });
 
   it('人机验证相关错误可区分', () => {
-    expect(describeAuthError(apiError(403, 'AUTH_CAPTCHA_REQUIRED'))).toBe('请先完成人机验证');
-    expect(describeAuthError(apiError(403, 'AUTH_CAPTCHA_INVALID'))).toBe('人机验证未通过，请重试');
+    expect(authErrorKey(apiError(403, 'AUTH_CAPTCHA_REQUIRED'))).toBe('error.captchaRequired');
+    expect(authErrorKey(apiError(403, 'AUTH_CAPTCHA_INVALID'))).toBe('error.captchaInvalid');
   });
 
   it('验证码过期与不匹配分开说', () => {
-    expect(describeAuthError(apiError(400, 'AUTH_VERIFICATION_CODE_EXPIRED'))).toBe(
-      '验证码已过期，请重新获取'
-    );
-    expect(describeAuthError(apiError(400, 'AUTH_VERIFICATION_CODE_MISMATCH'))).toBe(
-      '验证码不正确'
+    expect(authErrorKey(apiError(400, 'AUTH_VERIFICATION_CODE_EXPIRED'))).toBe('error.codeExpired');
+    expect(authErrorKey(apiError(400, 'AUTH_VERIFICATION_CODE_MISMATCH'))).toBe(
+      'error.codeMismatch'
     );
   });
 
-  it('未登记的 code 回落到服务端 detail', () => {
+  it('未登记的 code 回落成服务端 detail', () => {
     const error = new ApiError(
-      parseProblemDetails(409, { code: 'SOMETHING_NEW', detail: '服务端给的说明' })
+      parseProblemDetails(409, {
+        code: 'SOMETHING_NEW',
+        detail: 'server supplied detail'
+      })
     );
-    expect(describeAuthError(error)).toBe('服务端给的说明');
+
+    expect(authErrorKey(error)).toBe('server supplied detail');
   });
 
-  it('既无 code 也无 detail 时用状态码标题', () => {
-    expect(describeAuthError(apiError(503, null))).toBe('Internal Server Error');
+  it('既无 code 也无 detail 时用通用 key', () => {
+    expect(authErrorKey(apiError(503, null))).toBe('error.unknown');
   });
 
-  it('网络失败明确说连不上，而不是「密码错」', () => {
-    expect(describeAuthError(new NetworkError('boom', new Error('x')))).toBe(
-      '无法连接服务器，请检查网络'
-    );
+  it('网络失败有独立 key，而不是「密码错」', () => {
+    expect(authErrorKey(new NetworkError('boom', new Error('x')))).toBe('error.network');
   });
 
-  it('未知异常不返回空串', () => {
-    expect(describeAuthError('weird')).toBe('操作失败，请稍后重试');
-    expect(describeAuthError(undefined).length).toBeGreaterThan(0);
+  it('未知异常回落到通用 key', () => {
+    expect(authErrorKey('weird')).toBe('error.unknown');
+    expect(authErrorKey(undefined)).toBe('error.unknown');
   });
 });
 
