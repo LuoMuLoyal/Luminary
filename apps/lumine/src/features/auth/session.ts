@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import * as authApi from '@/features/auth/api/service';
 import { isSessionExpired } from '@/features/auth/api/errors';
+import { refreshSession } from '@/features/auth/api/session-refresh';
 import type { LoginRequest, RegisterRequest, SessionUser } from '@/features/auth/api/types';
 
 /**
@@ -9,7 +10,7 @@ import type { LoginRequest, RegisterRequest, SessionUser } from '@/features/auth
  *
  * ## 这个 store 里为什么没有 token
  *
- * 会话走 httpOnly cookie（见 `Lucent` 的 `/auth/session/*`），token 由浏览器收下，
+ * 会话走 httpOnly cookie（见 Lucent 的 `/auth/session/*`），token 由浏览器收下，
  * **脚本读不到**。所以这里能存的只有「用户是谁 + 登录态三态」，这正是设计意图：
  * 即使发生 XSS，也偷不到可复用的凭据。
  *
@@ -21,8 +22,18 @@ import type { LoginRequest, RegisterRequest, SessionUser } from '@/features/auth
  * ## 401 的统一处理
  *
  * 任何一次请求拿到「会话失效」的 401（`isSessionExpired`），都直接把 store 置为
- * 未登录，而不是让每个页面各写一遍跳转逻辑。注意登录表单的密码错误也是 401，
- * 但它带 `AUTH_WRONG_PASSWORD`，由 `isSessionExpired` 排除在外。
+ * 未登录。注意登录表单的密码错误也是 401，但它带 `AUTH_WRONG_PASSWORD`，
+ * 被 `isSessionExpired` 排除在外。
+ *
+ * ## access token 过期 ≠ 会话结束
+ *
+ * access token 短命（分钟级到小时级），refresh cookie 长命。SPA 闲置一段时间后
+ * `me()` 会拿到 `AUTH_TOKEN_EXPIRED`，但**会话其实还在**。所以 `bootstrap` 在这
+ * 种情况下先尝试静默续期再重试一次，而不是直接把人踢去登录页。
+ *
+ * 续期走 `refreshSession()`——**单飞**的那个入口。并发场景下多个请求同时发现
+ * token 过期时，只会产生一次轮换请求；否则第二次必然因为旧 refresh token 已作废
+ * 而失败（Lucent 的轮换是一次性的）。
  */
 
 export type SessionStatus = 'unknown' | 'authenticated' | 'anonymous';
@@ -33,6 +44,8 @@ interface SessionState {
 
   /** 静默读取当前会话；401 视为未登录，不抛错。 */
   bootstrap: () => Promise<void>;
+  /** 静默续期并刷新本地登录态。并发调用共享一次网络请求。 */
+  refresh: () => Promise<SessionUser>;
   login: (input: LoginRequest) => Promise<SessionUser>;
   register: (input: RegisterRequest) => Promise<SessionUser>;
   logout: () => Promise<void>;
@@ -47,19 +60,33 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   user: null,
 
   async bootstrap() {
-    // 已经在判定中或已判定过的情况不重复打；调用方可以随时再调，成本是一次请求。
     try {
       const user = await authApi.me();
       set({ status: 'authenticated', user });
+      return;
     } catch (error) {
-      // 401 = 未登录；其它错误（断网、5xx）也按未登录处理，但不掩盖——
-      // 页面上的错误展示由各自的请求负责，这里只管登录态。
       if (!isSessionExpired(error)) {
+        // 断网 / 5xx：按未登录处理，但不掩盖——页面上的错误展示由各自的请求负责，
+        // 这里只管登录态。
         set({ status: 'anonymous', user: null });
         return;
       }
+    }
+
+    // access token 过期时先尝试静默续期，成功就仍在登录态。
+    try {
+      const user = await get().refresh();
+      set({ status: 'authenticated', user });
+    } catch {
+      // 续期失败（refresh cookie 也没了 / 已被轮换掉）才是真的未登录。
       set({ status: 'anonymous', user: null });
     }
+  },
+
+  async refresh() {
+    const { user } = await refreshSession();
+    set({ status: 'authenticated', user });
+    return user;
   },
 
   async login(input) {

@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, parseProblemDetails } from '@/lib/problem-details';
 import { NetworkError } from '@/lib/api-client';
 
+vi.mock('@/features/auth/api/session-refresh', () => ({
+  refreshSession: vi.fn()
+}));
+
 vi.mock('@/features/auth/api/service', () => ({
   me: vi.fn(),
   login: vi.fn(),
@@ -11,9 +15,11 @@ vi.mock('@/features/auth/api/service', () => ({
 }));
 
 import * as authApi from '@/features/auth/api/service';
+import { refreshSession } from '@/features/auth/api/session-refresh';
 import { useSessionStore } from './session';
 
 const mocked = vi.mocked(authApi);
+const mockedRefresh = vi.mocked(refreshSession);
 
 const USER = {
   id: 'u1',
@@ -51,11 +57,44 @@ describe('会话状态', () => {
     expect(useSessionStore.getState().user?.id).toBe('u1');
   });
 
-  it('bootstrap 遇到会话失效的 401 → anonymous，不抛错', async () => {
-    mocked.me.mockRejectedValue(apiError(401, 'AUTH_REQUIRED'));
+  it('bootstrap 遇到 401 时先静默续期，续期成功仍在登录态', async () => {
+    // access token 过期 ≠ 会话结束：refresh cookie 还活着就该自动续上，
+    // 而不是把用户踢去登录页。
+    mocked.me.mockRejectedValueOnce(apiError(401, 'AUTH_TOKEN_EXPIRED'));
+    mockedRefresh.mockResolvedValue({ user: USER, expiresIn: 900 });
+
+    await useSessionStore.getState().bootstrap();
+
+    expect(mockedRefresh).toHaveBeenCalledTimes(1);
+    expect(useSessionStore.getState().status).toBe('authenticated');
+    // 续期已带回用户，不必再打一次 /auth/me。
+    expect(mocked.me).toHaveBeenCalledTimes(1);
+  });
+
+  it('bootstrap 续期失败 → anonymous，不抛错', async () => {
+    mocked.me.mockRejectedValue(apiError(401, 'AUTH_TOKEN_EXPIRED'));
+    mockedRefresh.mockRejectedValue(apiError(401, 'AUTH_REFRESH_TOKEN_INVALID'));
 
     await expect(useSessionStore.getState().bootstrap()).resolves.toBeUndefined();
     expect(useSessionStore.getState().status).toBe('anonymous');
+  });
+
+  it('bootstrap 遇到非会话失效错误不触发续期', async () => {
+    mocked.me.mockRejectedValue(apiError(503, 'DEPENDENCY_UNAVAILABLE'));
+
+    await useSessionStore.getState().bootstrap();
+
+    expect(mockedRefresh).not.toHaveBeenCalled();
+    expect(useSessionStore.getState().status).toBe('anonymous');
+  });
+
+  it('refresh 成功写入用户与登录态', async () => {
+    mockedRefresh.mockResolvedValue({ user: USER, expiresIn: 900 });
+
+    const user = await useSessionStore.getState().refresh();
+
+    expect(user.id).toBe('u1');
+    expect(useSessionStore.getState().status).toBe('authenticated');
   });
 
   it('bootstrap 遇到网络错误也回到 anonymous，而不是卡在 unknown', async () => {
