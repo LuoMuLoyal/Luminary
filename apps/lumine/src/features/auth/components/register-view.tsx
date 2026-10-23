@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from '@tanstack/react-router';
 
 import { Button } from '@/components/ui/button';
@@ -11,19 +12,19 @@ interface RegisterViewProps {
 
 /** 注册页。 */
 export default function RegisterView({ redirectTo }: RegisterViewProps) {
+  const { t } = useTranslation();
+
   return (
     <AuthShell
-      title='注册账号'
-      description='需要邮箱验证码完成注册'
+      title={t('auth.signUp.title')}
+      description={t('auth.signUp.description')}
       switchAction={
         <Button variant='ghost' asChild>
-          <Link to='/auth/sign-in'>返回登录</Link>
+          <Link to='/auth/sign-in'>{t('auth.switchToSignIn')}</Link>
         </Button>
       }
       footer={
-        <p className='text-muted-foreground px-8 text-center text-sm'>
-          服务条款与隐私政策以官网为准。
-        </p>
+        <p className='text-muted-foreground px-8 text-center text-sm'>{t('auth.footer.terms')}</p>
       }
     >
       <RegisterForm {...(redirectTo !== undefined && { redirectTo })} />

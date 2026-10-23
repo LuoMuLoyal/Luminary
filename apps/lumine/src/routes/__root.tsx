@@ -8,6 +8,8 @@ import { ActiveThemeProvider } from '@/components/themes/active-theme';
 import ThemeProvider from '@/components/themes/theme-provider';
 import { DEFAULT_THEME, THEMES } from '@/components/themes/theme.config';
 import { SessionBootstrap } from '@/features/auth/session-bootstrap';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/lib/i18n';
 import { seo } from '@/lib/seo';
 
 import appCss from '@/styles/globals.css?url';
@@ -78,11 +80,13 @@ function RootDocument() {
           disableTransitionOnChange
           enableColorScheme
         >
-          <ActiveThemeProvider initialTheme={activeTheme}>
-            <SessionBootstrap />
-            <Toaster />
-            <Outlet />
-          </ActiveThemeProvider>
+          <I18nextProvider i18n={i18n}>
+            <ActiveThemeProvider initialTheme={activeTheme}>
+              <SessionBootstrap />
+              <Toaster />
+              <Outlet />
+            </ActiveThemeProvider>
+          </I18nextProvider>
         </ThemeProvider>
         <TanStackRouterDevtools position='bottom-left' />
         <Scripts />

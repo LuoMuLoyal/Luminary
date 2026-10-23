@@ -6,6 +6,7 @@ import { InfoSidebar } from '@/components/layout/info-sidebar';
 import { InfobarProvider } from '@/components/ui/infobar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useSessionStore } from '@/features/auth/session';
+import i18n from '@/lib/i18n';
 
 /**
  * 受保护区的路由。
@@ -26,10 +27,10 @@ import { useSessionStore } from '@/features/auth/session';
 export const Route = createFileRoute('/dashboard')({
   head: () => ({
     meta: [
-      { title: 'Lumine' },
+      { title: i18n.t('app.name') },
       {
         name: 'description',
-        content: '药品知识工作台'
+        content: i18n.t('app.tagline')
       },
       { name: 'robots', content: 'noindex, nofollow' }
     ]

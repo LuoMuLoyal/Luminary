@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 
@@ -13,16 +14,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenuButton } from '@/components/ui/sidebar';
 import { useSessionStore } from '@/features/auth/session';
+import { LanguageMenuItems } from './language-menu-items';
 
 /**
  * 侧边栏底部的账号区。
  *
- * 数据来自 `useSessionStore`——**不再硬编码** `User` / `user@example.com`
- * （模板的假数据会让「登录了但显示别人」这种问题被误判成登录失败）。
+ * 数据来自 `useSessionStore`——**不硬编码**用户信息（模板的假数据会让
+ * 「登录了但显示别人」被误判成登录失败）。
  *
- * 头像不可用时的兜底取的是昵称/邮箱首字符，而不是固定的 `U`。
+ * 头像不可用时的兜底取昵称/邮箱首字符，而不是固定的 `U`。
  */
 export function AccountMenu() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useSessionStore((state) => state.user);
   const logout = useSessionStore((state) => state.logout);
@@ -37,13 +40,14 @@ export function AccountMenu() {
   async function handleLogout() {
     try {
       await logout();
+      toast.success(t('auth.message.signedOut'));
     } catch {
       // 服务端吊销失败不阻塞退出：本地登录态已在 store 里清掉，
-      // 不清 cookie 的后果由下次启动的 bootstrap 兜住（会得到 401）。
-      toast.warning('已退出，但服务端会话可能未完全清理');
+      // 未清的 cookie 由下次启动的 bootstrap 以 401 兜住。
+      toast.warning(t('auth.message.signOutIncomplete'));
     }
 
-    await navigate({ to: '/auth/sign-in', replace: true });
+    void navigate({ to: '/auth/sign-in', replace: true });
   }
 
   return (
@@ -51,6 +55,7 @@ export function AccountMenu() {
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size='lg'
+          aria-label={t('auth.account.openMenu')}
           className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
         >
           <Avatar className='size-8 shrink-0 rounded-full'>
@@ -77,9 +82,11 @@ export function AccountMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <LanguageMenuItems />
+        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => void handleLogout()}>
           <Icons.logout className='mr-2 h-4 w-4' />
-          退出登录
+          {t('auth.account.signOut')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

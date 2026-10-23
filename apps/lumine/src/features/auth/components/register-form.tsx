@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import * as z from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { FieldDescription, FieldGroup } from '@/components/ui/field';
 import { useAppForm } from '@/lib/form';
-import { describeAuthError } from '@/features/auth/api/errors';
-import { sendVerificationCode } from '@/features/auth/api/service';
+import { register as registerAccount, sendVerificationCode } from '@/features/auth/api/service';
+import { authErrorKey } from '@/features/auth/api/errors';
 import { useSessionStore } from '@/features/auth/session';
 
 /**
@@ -15,25 +16,25 @@ import { useSessionStore } from '@/features/auth/session';
  *
  * ## 三步而不是一个表单
  *
- * Lucent 的注册**必须带邮箱验证码**（`registerSchema.code` 必填），而验证码要先
- * 用 `POST /auth/send-verification-code` 发出去（`scene: 'register'`）。
+ * Lucent 的注册**必须带邮箱验证码**，而验证码要先经
+ * `POST /auth/send-verification-code`（`scene: 'register'`）发出去。
  * 所以是：填邮箱 → 发码并倒计时 → 填验证码与密码 → 提交。
  *
  * ## 冷却时间来自服务端
  *
- * `sendVerificationCode` 的响应里带 `cooldown`（秒）。**不要在客户端写死 60**——
- * 服务端改配置时写死值会造成「按钮亮了但服务端还没放行」的 429。
+ * 响应里带 `cooldown`（秒）。**不要在客户端写死 60**——服务端改配置时写死值会
+ * 造成「按钮亮了但服务端还没放行」的 429。
  *
- * ## 密码沿用登录的强度口径
+ * ## 文案全部走 i18n
  *
- * 服务端注册与登录共用 `strongPasswordSchema()`，这里做同样的前置校验，
- * 免得用户填完验证码才被告知密码不合格。
+ * 校验消息是 key（schema 在模块加载时构造，取不到当前语言），
+ * 由 `FieldError` 渲染时翻译。**这里不写任何人类可读文案。**
  */
 
-const emailSchema = z.email('请输入有效的邮箱地址');
-const codeSchema = z.string().min(1, '请输入验证码');
-const passwordSchema = z.string().min(8, '密码至少 8 位');
-const nicknameSchema = z.string().max(20, '昵称最多 20 个字符');
+const emailSchema = z.email('auth.validation.emailInvalid');
+const codeSchema = z.string().min(1, 'auth.validation.codeRequired');
+const passwordSchema = z.string().min(8, 'auth.validation.passwordTooShort');
+const nicknameSchema = z.string();
 
 const registerSchema = z.object({
   email: emailSchema,
@@ -48,11 +49,20 @@ interface RegisterFormProps {
 }
 
 export default function RegisterForm({ redirectTo }: RegisterFormProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [sendError, setSendError] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [sendErrorKey, setSendErrorKey] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [sending, setSending] = useState(false);
+
+  // 倒计时每秒递减。用 effect 而不是递归定时器：组件卸载后定时器必须清掉，
+  // 否则会对着已卸载的组件 setState。
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   const form = useAppForm({
     defaultValues: {
@@ -61,25 +71,27 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
       password: '',
       nickname: ''
     },
-    validators: {
-      // `nickname` 空串等价于不填，交给提交时归一，不在这里拒绝。
-      onSubmit: registerSchema
-    },
+    validators: { onSubmit: registerSchema },
     onSubmit: async ({ value }) => {
-      setSubmitError(null);
+      setErrorKey(null);
 
       try {
-        const user = await useSessionStore.getState().register({
+        const { user } = await registerAccount({
           email: value.email,
           code: value.code,
           password: value.password,
-          ...(value.nickname.trim().length > 0 && { nickname: value.nickname.trim() })
+          ...(value.nickname.trim().length > 0 && {
+            nickname: value.nickname.trim()
+          })
         });
 
-        toast.success(`注册成功：${user.nickname ?? user.email}`);
-        await navigate({ to: redirectTo ?? '/dashboard', replace: true });
+        // 注册即登录（服务端已下发 cookie），同步本地会话态。
+        useSessionStore.setState({ status: 'authenticated', user });
+
+        toast.success(t('auth.message.signedUp', { name: user.nickname ?? user.email }));
+        void navigate({ to: redirectTo ?? '/dashboard', replace: true });
       } catch (error) {
-        setSubmitError(describeAuthError(error));
+        setErrorKey(authErrorKey(error));
       }
     }
   });
@@ -90,11 +102,11 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
     const emailResult = emailSchema.safeParse(email);
 
     if (!emailResult.success) {
-      setSendError(emailResult.error.issues[0]?.message ?? '请输入有效的邮箱地址');
+      setSendErrorKey('auth.validation.emailInvalid');
       return;
     }
 
-    setSendError(null);
+    setSendErrorKey(null);
     setSending(true);
 
     try {
@@ -103,9 +115,9 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
         scene: 'register'
       });
       setCooldown(seconds);
-      toast.success('验证码已发送，请查收邮箱');
+      toast.success(t('auth.message.codeSent'));
     } catch (error) {
-      setSendError(describeAuthError(error));
+      setSendErrorKey(authErrorKey(error));
     } finally {
       setSending(false);
     }
@@ -124,25 +136,25 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
           name='email'
           children={(field) => (
             <field.TextField
-              label='邮箱'
+              label={t('auth.field.email')}
               type='email'
               autoComplete='email'
-              placeholder='you@example.com'
+              placeholder={t('auth.field.emailPlaceholder')}
             />
           )}
         />
 
-        {/* 验证码与「发送」按钮在同一行：两者是同一个动作的两半，
+        {/* 验证码与「发送」按钮放在一起：两者是同一个动作的两半，
             分开两处会让用户以为按钮只管下半部分。 */}
         <form.AppField
           name='code'
           children={(field) => (
             <div className='space-y-2'>
               <field.TextField
-                label='邮箱验证码'
+                label={t('auth.field.code')}
                 inputMode='numeric'
                 autoComplete='one-time-code'
-                placeholder='请输入邮箱收到的验证码'
+                placeholder={t('auth.field.codePlaceholder')}
               />
               <Button
                 type='button'
@@ -152,14 +164,14 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
                 onClick={() => void handleSendCode()}
               >
                 {cooldown > 0
-                  ? `${String(cooldown)} 秒后可重新发送`
+                  ? t('auth.action.resendIn', { seconds: cooldown })
                   : sending
-                    ? '发送中…'
-                    : '发送验证码'}
+                    ? t('auth.action.sending')
+                    : t('auth.action.sendCode')}
               </Button>
-              {sendError !== null && (
+              {sendErrorKey !== null && (
                 <p role='alert' className='text-destructive text-sm'>
-                  {sendError}
+                  {t(sendErrorKey)}
                 </p>
               )}
             </div>
@@ -170,10 +182,10 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
           name='password'
           children={(field) => (
             <field.TextField
-              label='密码'
+              label={t('auth.field.password')}
               type='password'
               autoComplete='new-password'
-              placeholder='至少 8 位，建议使用口令短语'
+              placeholder={t('auth.field.passwordHint')}
             />
           )}
         />
@@ -182,27 +194,25 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
           name='nickname'
           children={(field) => (
             <field.TextField
-              label='昵称'
+              label={t('auth.field.nickname')}
               autoComplete='nickname'
-              placeholder='可选，最多 20 个字符'
+              placeholder={t('auth.field.nicknamePlaceholder')}
             />
           )}
         />
       </FieldGroup>
 
-      {submitError !== null && (
+      {errorKey !== null && (
         <p role='alert' className='text-destructive text-sm'>
-          {submitError}
+          {t(errorKey)}
         </p>
       )}
 
       <form.AppForm>
-        <form.SubmitButton className='w-full'>创建账号</form.SubmitButton>
+        <form.SubmitButton className='w-full'>{t('auth.action.signUp')}</form.SubmitButton>
       </form.AppForm>
 
-      <FieldDescription className='text-center'>
-        注册即表示同意服务条款与隐私政策。
-      </FieldDescription>
+      <FieldDescription className='text-center'>{t('auth.footer.terms')}</FieldDescription>
     </form>
   );
 }

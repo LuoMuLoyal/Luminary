@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -180,6 +181,18 @@ function FieldError({
 }: React.ComponentProps<'div'> & {
   errors?: Array<{ message?: string } | undefined>;
 }) {
+  const { t, i18n } = useTranslation();
+
+  /**
+   * 校验消息可能是**i18n key**（`auth.validation.emailInvalid`），也可能是
+   * 直接可读的文案。依据「该 key 在当前语言资源里存在与否」判断，
+   * 而不是靠正则猜格式——这样后端返回的文案（含点号）不会被误当 key。
+   */
+  const translate = useCallback(
+    (message: string): string => (i18n.exists(message, { ns: 'auth' }) ? t(message) : message),
+    [i18n, t]
+  );
+
   const content = useMemo(() => {
     if (children) {
       return children;
@@ -192,15 +205,18 @@ function FieldError({
     const uniqueErrors = [...new Map(errors.map((error) => [error?.message, error])).values()];
 
     if (uniqueErrors?.length == 1) {
-      return uniqueErrors[0]?.message;
+      const message = uniqueErrors[0]?.message;
+      return message === undefined ? null : translate(message);
     }
 
     return (
       <ul className='ml-4 flex list-disc flex-col gap-1'>
-        {uniqueErrors.map((error, index) => error?.message && <li key={index}>{error.message}</li>)}
+        {uniqueErrors.map(
+          (error, index) => error?.message && <li key={index}>{translate(error.message)}</li>
+        )}
       </ul>
     );
-  }, [children, errors]);
+  }, [children, errors, translate]);
 
   if (!content) {
     return null;

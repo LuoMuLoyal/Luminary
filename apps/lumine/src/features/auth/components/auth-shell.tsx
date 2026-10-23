@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { InteractiveGridPattern } from './interactive-grid';
 
@@ -22,6 +23,8 @@ interface AuthShellProps {
 }
 
 export function AuthShell({ switchAction, title, description, children, footer }: AuthShellProps) {
+  const { t } = useTranslation();
+
   return (
     <div className='relative flex min-h-screen flex-col items-center justify-center overflow-hidden md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
       <div className='absolute top-4 right-4 md:top-8 md:right-8'>{switchAction}</div>
@@ -42,7 +45,7 @@ export function AuthShell({ switchAction, title, description, children, footer }
           >
             <path d='M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3' />
           </svg>
-          Lumine
+          {t('app.name')}
         </div>
         <InteractiveGridPattern
           className={cn(
@@ -51,10 +54,8 @@ export function AuthShell({ switchAction, title, description, children, footer }
           )}
         />
         <div className='text-sidebar-foreground relative z-20 mt-auto'>
-          <p className='text-lg'>药品知识工作台</p>
-          <p className='text-sidebar-foreground/70 mt-2 text-sm'>
-            面向药品研发与药学分析：靶点机制、成药性、结构与图谱。
-          </p>
+          <p className='text-lg'>{t('app.tagline')}</p>
+          <p className='text-sidebar-foreground/70 mt-2 text-sm'>{t('app.description')}</p>
         </div>
       </div>
 
