@@ -93,11 +93,16 @@ pnpm contract          # -> src/generated/lucent-api.ts（勿手改）
 `src/lib/api-client.ts` 用 `openapi-fetch` 消费它，因此**路径与载荷都由后端契约
 推导**——写错路径或漏字段是编译错误，不是线上故障。
 
-**为什么生成物在 `src/generated/` 而不是 `src/lib/generated/`**：`src/lib/` 是手写
-工具代码（`utils` / `form` / `query-client`…），掺入生成产物会让「谁维护这个文件」
-含糊；工作区的既定做法也是给生成客户端一个独立的顶层目录（见
-`Luminous/generated/lucent_api/`）。该目录已加入 `.oxlintrc.json` 与 `.oxfmtrc.json`
-的 ignore——生成文件自带格式，规则不该对它报错或重写它。
+**为什么是 `src/generated/`**：本 app 只有 `@/*` → `./src/*` 一条别名，生成物因此
+直接落在 `@/generated/lucent-api` 上，不需要第二个别名或相对路径穿出 `src`。
+它也参与打包，是应用源码的一部分，与 `src/routeTree.gen.ts` 同类。
+
+**为什么不是 `src/lib/generated/`**：`src/lib/` 是手写工具代码（`utils` / `form` /
+`query-client`…），掺入 400 KB 生成产物会让「谁维护这个文件」变得含糊；
+`src/**` 下按类型分目录的约定也会被它打断。
+
+该目录已加入 `.oxlintrc.json` 与 `.oxfmtrc.json` 的 ignore——生成文件自带格式，
+规则不该对它报错或重写它。
 
 - 契约源：`<workspace>/Lucent/docs/reference/generated/openapi.json`。
   路径按 `pnpm-workspace.yaml` 标记向上找，不数层级（数层级在目录变动时会**静默**指错）。
