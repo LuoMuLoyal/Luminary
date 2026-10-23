@@ -73,9 +73,44 @@ Web 与桌面两个宿主共用同一条路径：
   会让每次刷新先闪一下登录页——这是三态而非布尔的原因。
 - 路由守卫在 `beforeLoad` 里做（`src/routes/dashboard.tsx`），并等 `unknown` 出结果；
   未登录时带 `redirect` 参数跳登录页，登录后回跳原路径。
-- 请求经由 `src/lib/api-client.ts`，默认 `credentials: 'include'`，路径自动补 `/api/v1`。
 
 配置见 `env.example.txt`。**Lucent 侧必须把本客户端的来源加进 `CORS_ORIGIN`**
 （开发期 `http://localhost:1420`），否则预检失败且 Lucent 日志里看不到请求。
+
+## API 契约
+
+请求层**由 OpenAPI 契约驱动**，不手写类型：
+
+```bash
+# 1) 在 Lucent 导出契约（后端 API 变更后必跑）
+cd ../Lucent && pnpm export:openapi
+
+# 2) 在本 app 生成类型
+pnpm contract          # -> src/lib/generated/lucent-api.ts（勿手改）
+```
+
+`src/lib/generated/lucent-api.ts` 是 `openapi-typescript` 的产物，已入库；
+`src/lib/api-client.ts` 用 `openapi-fetch` 消费它，因此**路径与载荷都由后端契约
+推导**——写错路径或漏字段是编译错误，不是线上故障。
+
+- 契约源：`<workspace>/Lucent/docs/reference/generated/openapi.json`。
+  路径按 `pnpm-workspace.yaml` 标记向上找，不数层级（数层级在目录变动时会**静默**指错）。
+- 错误：`application/problem+json`（ADR-0012）在中间件里归一成 `ApiError`，
+  保留稳定 `code` 供认证分支使用。
+- `features/<domain>/api/types.ts` 只做**别名**（`components['schemas'][...]`），
+  不写字段——需要新字段就去改后端契约。
+
+## 国际化
+
+界面文案全部走 i18n，**默认英文**：
+
+- 资源：`src/lib/i18n/locales/{en,zh-CN}/auth.json`。
+- 初始化：`src/lib/i18n/index.ts`，`fallbackLng: 'en'`；
+  用户选择记在 `localStorage.lumine.lang`，**不跟随浏览器语言自动切换**
+  （默认界面语言是产品决策，不是运行环境推断）。
+- 切换入口：账号菜单里的语言项。
+- 校验消息写成 **i18n key**（如 `auth.validation.emailInvalid`）而不是文案：
+  zod schema 在模块加载时构造，那时取不到当前语言；`FieldError` 在渲染时按键翻译。
+- **不要在组件里写人类可读文案**，包括中文与英文。
 
 旧版模板的 Clerk 残留已全部清除，仓库内无任何 Clerk 依赖或配置。

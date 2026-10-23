@@ -50,10 +50,14 @@
 
 以下能力本仓**尚未具备**，列在这里以免误以为已经覆盖：
 
-1. **没有单元测试与 lint 门禁**。三个 app 的 workflow 只验「能编译」，
-   `cargo check` + `vite build` 通过不代表逻辑正确。这是本仓最大的基建缺口。
+1. **单元测试只在 `lumine` 存在，且尚未接入 CI 门禁**。`lumine` 已有 vitest
+   （契约错误解析、错误映射、会话状态、类型化客户端），但 `lumine.yml` 只跑
+   `lint / typecheck / build`，没有测试步骤；`site` 与 `personal` 仍无测试。
 2. **action 未固定到 SHA**。全部用 tag 引用；tag 可被上游仓库移动，是供应链攻击
    的常见入口。Scorecard 会把它记为 finding。
 3. **没有 pre-commit 钩子**。检查全部后移到 CI，本地提交前无拦截。
+4. **契约生成依赖同级仓库**。`lumine` 的类型来自 Lucent 的
+   `docs/reference/generated/openapi.json`，需要三仓平铺才能生成；CI 没有对应的
+   checkout 步骤。生成物已入库，编译不会因此失败，但**契约漂移不会被自动发现**。
 
-前两项属于"该补"，但不在本次改动范围内。
+第 1 项的最难部分（写测试）已在 `lumine` 落地；剩下的「接进 workflow」是独立工作。
