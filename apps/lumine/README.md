@@ -71,11 +71,26 @@ Web 与桌面两个宿主共用同一条路径：
   不存 token，只存「用户是谁 + 登录态三态（unknown / authenticated / anonymous）」。
 - `unknown` 表达「还没问过服务端」。SPA 没有服务端可判定登录态，把它当成 false
   会让每次刷新先闪一下登录页——这是三态而非布尔的原因。
+- 会话轮换走 `refreshSession()`，**单飞**：Lucent 的轮换是一次性的，并发刷新会让
+  第二次必然失败并登出。`bootstrap` 在 access token 过期时先静默续期再重试，
+  而不是直接把人踢去登录页。
 - 路由守卫在 `beforeLoad` 里做（`src/routes/dashboard.tsx`），并等 `unknown` 出结果；
   未登录时带 `redirect` 参数跳登录页，登录后回跳原路径。
 
 配置见 `env.example.txt`。**Lucent 侧必须把本客户端的来源加进 `CORS_ORIGIN`**
 （开发期 `http://localhost:1420`），否则预检失败且 Lucent 日志里看不到请求。
+
+## 人机验证
+
+Cloudflare Turnstile，用 `@marsidev/react-turnstile`（官方文档推荐的 React 封装）。
+
+- 配置来自服务端 `GET /auth/captcha`（`{ enabled, siteKey }`），**不写死 siteKey**；
+  `enabled: false` 时组件不渲染任何东西（本地开发与 e2e 都是这种）。
+- **注册**：服务端无条件校验，所以只要启用就直接显示 widget，未取得 token 时提交按钮禁用。
+- **登录**：服务端只在同一邮箱失败 3 次后才要求，所以一开始不显示；收到
+  `AUTH_CAPTCHA_REQUIRED` 才把 widget 显示出来，`AUTH_CAPTCHA_INVALID` 则重置重取。
+- token 一次性且短命：`onExpire` / `onError` 一律清空，宁可不让提交，也不提交一个
+  必然被拒的值。
 
 ## API 契约
 
