@@ -55,15 +55,7 @@ const openapiPath = join(
   "generated",
   "openapi.json",
 );
-const outputPath = join(
-  here,
-  "..",
-  "..",
-  "src",
-  "lib",
-  "generated",
-  "lucent-api.ts",
-);
+const outputPath = join(here, "..", "..", "src", "generated", "lucent-api.ts");
 
 if (!existsSync(openapiPath)) {
   throw new Error(

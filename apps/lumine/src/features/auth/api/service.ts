@@ -3,7 +3,7 @@ import { expectData, NetworkError, lucent } from '@/lib/api-client';
 /**
  * 认证端点的唯一调用入口 —— **类型全部来自 OpenAPI 契约**。
  *
- * 路径与载荷由 `@/lib/generated/lucent-api`（从 Lucent 的 openapi.json 生成）
+ * 路径与载荷由 `@/generated/lucent-api`（从 Lucent 的 openapi.json 生成）
  * 推导，因此这里没有手写的请求 / 响应类型：后端改字段，这里立刻是类型错误。
  *
  * 全部走 **httpOnly cookie 会话**（`/auth/session/*`）：响应体里没有 token，

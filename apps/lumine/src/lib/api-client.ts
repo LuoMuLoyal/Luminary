@@ -24,7 +24,7 @@
 import createClient, { type Middleware } from 'openapi-fetch';
 
 import { ApiError, parseProblemDetails } from '@/lib/problem-details';
-import type { paths } from '@/lib/generated/lucent-api';
+import type { paths } from '@/generated/lucent-api';
 import { lucentApiBase, lucentCredentialsInclude } from './api-config';
 
 /**

@@ -1,7 +1,7 @@
 /**
  * 契约类型的**别名**，不是手写定义。
  *
- * 每个类型都指向 `@/lib/generated/lucent-api`（由 Lucent 的 `openapi.json`
+ * 每个类型都指向 `@/generated/lucent-api`（由 Lucent 的 `openapi.json`
  * 生成）里的 schema。这里存在的唯一理由是让业务代码用短名字，
  * 并在后端重命名 schema 时**只有这一个文件需要改**。
  *
@@ -9,7 +9,7 @@
  * `pnpm contract` 重新生成——否则又回到「维护第二份契约」。
  */
 
-import type { components } from '@/lib/generated/lucent-api';
+import type { components } from '@/generated/lucent-api';
 
 /** 会话用户资料（`/auth/me` 与登录/注册/刷新的响应共用）。 */
 export type SessionUser = components['schemas']['SessionResponseUser'];

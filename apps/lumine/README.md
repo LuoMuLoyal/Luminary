@@ -86,12 +86,18 @@ Web 与桌面两个宿主共用同一条路径：
 cd ../Lucent && pnpm export:openapi
 
 # 2) 在本 app 生成类型
-pnpm contract          # -> src/lib/generated/lucent-api.ts（勿手改）
+pnpm contract          # -> src/generated/lucent-api.ts（勿手改）
 ```
 
-`src/lib/generated/lucent-api.ts` 是 `openapi-typescript` 的产物，已入库；
+`src/generated/lucent-api.ts` 是 `openapi-typescript` 的产物，已入库；
 `src/lib/api-client.ts` 用 `openapi-fetch` 消费它，因此**路径与载荷都由后端契约
 推导**——写错路径或漏字段是编译错误，不是线上故障。
+
+**为什么生成物在 `src/generated/` 而不是 `src/lib/generated/`**：`src/lib/` 是手写
+工具代码（`utils` / `form` / `query-client`…），掺入生成产物会让「谁维护这个文件」
+含糊；工作区的既定做法也是给生成客户端一个独立的顶层目录（见
+`Luminous/generated/lucent_api/`）。该目录已加入 `.oxlintrc.json` 与 `.oxfmtrc.json`
+的 ignore——生成文件自带格式，规则不该对它报错或重写它。
 
 - 契约源：`<workspace>/Lucent/docs/reference/generated/openapi.json`。
   路径按 `pnpm-workspace.yaml` 标记向上找，不数层级（数层级在目录变动时会**静默**指错）。
