@@ -62,6 +62,27 @@ export function authErrorKey(error: unknown): string {
   return 'error.unknown';
 }
 
+/** 人机验证失败的两种形态。 */
+export type CaptchaErrorKind = 'required' | 'invalid';
+
+/**
+ * 判断失败是否来自人机验证，并区分「还没验证」与「验证通过但被拒」。
+ *
+ * 两种形态的 UI 反应不同：
+ * - 
+equired：在登录流程里意味着服务端要求补验证（例如失败次数越过阈值），
+ *   应该**把 widget 显示出来**；
+ * - invalid：token 已用过或过期，应该**重置 widget 重取**。
+ *
+ * 组件因此不需要直接依赖 ApiError 的形状。
+ */
+export function captchaErrorKind(error: unknown): CaptchaErrorKind | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.code === 'AUTH_CAPTCHA_REQUIRED') return 'required';
+  if (error.code === 'AUTH_CAPTCHA_INVALID') return 'invalid';
+  return null;
+}
+
 /**
  * 是否为「需要重新登录」的失败。
  *

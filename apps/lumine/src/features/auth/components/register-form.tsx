@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { FieldDescription, FieldGroup } from '@/components/ui/field';
 import { useAppForm } from '@/lib/form';
 import { register as registerAccount, sendVerificationCode } from '@/features/auth/api/service';
-import { authErrorKey } from '@/features/auth/api/errors';
+import { authErrorKey, captchaErrorKind } from '@/features/auth/api/errors';
 import { useSessionStore } from '@/features/auth/session';
+import { CaptchaField, useCaptchaConfig } from './captcha-field';
 
 /**
  * 注册表单。
@@ -56,6 +57,16 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
   const [cooldown, setCooldown] = useState(0);
   const [sending, setSending] = useState(false);
 
+  /**
+   * 注册**每次都要**人机验证（Lucent 的 
+egister 无条件 verify），
+   * 所以只要部署启用了 Turnstile 就直接渲染 widget，不等报错。
+   */
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
+  const { enabled: captchaEnabled } = useCaptchaConfig();
+  const captchaPending = captchaEnabled && captchaToken === null;
+
   // 倒计时每秒递减。用 effect 而不是递归定时器：组件卸载后定时器必须清掉，
   // 否则会对着已卸载的组件 setState。
   useEffect(() => {
@@ -82,7 +93,8 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
           password: value.password,
           ...(value.nickname.trim().length > 0 && {
             nickname: value.nickname.trim()
-          })
+          }),
+          ...(captchaToken !== null && { captchaToken })
         });
 
         // 注册即登录（服务端已下发 cookie），同步本地会话态。
@@ -91,6 +103,10 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
         toast.success(t('auth.message.signedUp', { name: user.nickname ?? user.email }));
         void navigate({ to: redirectTo ?? '/dashboard', replace: true });
       } catch (error) {
+        if (captchaErrorKind(error) !== null) {
+          // token 用掉或过期：重置重取，widget 会自己刷新。
+          setCaptchaResetSignal((n) => n + 1);
+        }
         setErrorKey(authErrorKey(error));
       }
     }
@@ -208,8 +224,15 @@ export default function RegisterForm({ redirectTo }: RegisterFormProps) {
         </p>
       )}
 
+      <CaptchaField onTokenChange={setCaptchaToken} resetSignal={captchaResetSignal} />
+      {captchaPending && (
+        <p className='text-muted-foreground text-sm'>{t('auth.captcha.required')}</p>
+      )}
+
       <form.AppForm>
-        <form.SubmitButton className='w-full'>{t('auth.action.signUp')}</form.SubmitButton>
+        <form.SubmitButton className='w-full' disabled={captchaPending}>
+          {t('auth.action.signUp')}
+        </form.SubmitButton>
       </form.AppForm>
 
       <FieldDescription className='text-center'>{t('auth.footer.terms')}</FieldDescription>

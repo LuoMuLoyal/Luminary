@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ApiError, parseProblemDetails } from '@/lib/problem-details';
 import { NetworkError } from '@/lib/api-client';
-import { authErrorKey, isSessionExpired } from './errors';
+import { authErrorKey, captchaErrorKind, isSessionExpired } from './errors';
 
 function apiError(status: number, code: string | null): ApiError {
   return new ApiError(parseProblemDetails(status, code === null ? {} : { code }));
@@ -47,6 +47,18 @@ describe('authErrorKey', () => {
   it('未知异常回落到通用 key', () => {
     expect(authErrorKey('weird')).toBe('error.unknown');
     expect(authErrorKey(undefined)).toBe('error.unknown');
+  });
+});
+
+describe('captchaErrorKind', () => {
+  it('区分「需要验证」与「验证被拒」', () => {
+    expect(captchaErrorKind(apiError(403, 'AUTH_CAPTCHA_REQUIRED'))).toBe('required');
+    expect(captchaErrorKind(apiError(403, 'AUTH_CAPTCHA_INVALID'))).toBe('invalid');
+  });
+
+  it('其它失败一律 null', () => {
+    expect(captchaErrorKind(apiError(401, 'AUTH_WRONG_PASSWORD'))).toBeNull();
+    expect(captchaErrorKind(new Error('x'))).toBeNull();
   });
 });
 
