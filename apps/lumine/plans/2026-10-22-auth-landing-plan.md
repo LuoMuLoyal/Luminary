@@ -130,7 +130,7 @@ const res = await fetch(`${BASE_URL}${endpoint}`, {
 
 ### F2（不阻塞）：`desktop.yml` 的过滤对 `lumine` 已失效
 
-`.github/workflows/desktop.yml` 里三处都还是改名前的 `apps/desktop` / `@luminary/desktop`：
+`.github/workflows/lumine.yml`（原 `desktop.yml`）里三处都曾指向改名前的 `apps/desktop` / `@luminary/desktop`：
 
 - `paths` 过滤不命中 → 改 `apps/lumine` 不触发；
 - `pnpm --filter @luminary/desktop ...` → 包名是 `@luminary/lumine`；
@@ -142,15 +142,15 @@ const res = await fetch(`${BASE_URL}${endpoint}`, {
 
 ## 五、Lucent 认证契约（只读，已核实）
 
-| 端点                                                                   | 请求                                                                                                            | 响应                                           |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `POST /api/v1/auth/register`                                           | `{ email, password, code, captchaToken?, nickname? }`，**`.strict()`**                                          | `201 { user: UserBrief, tokens }`              |
-| `POST /api/v1/auth/login`                                              | `{ email, password?, code?, captchaToken? }`（密码与验证码二选一），**`.strict()`**                             | `200 { user: UserFull, tokens }`               |
-| `POST /api/v1/auth/refresh`                                            | `{ refreshToken }`，**`@Public()`**                                                                             | `200 { accessToken, refreshToken, expiresIn }` |
-| `POST /api/v1/auth/logout`                                             | `{ refreshToken }`                                                                                              | 需鉴权                                         |
-| `GET /api/v1/auth/sessions`、`DELETE /api/v1/auth/sessions/:sessionId` | —                                                                                                               | 需鉴权                                         |
-| `GET /api/v1/auth/captcha`                                             | —                                                                                                               | `{ enabled, siteKey }`                         |
-| `POST /api/v1/auth/send-verification-code`                             | `{ email, scene }`，scene ∈ `register`/`login`/`change-email`/`set-password`/`delete-account`/`forgot-password` | `{ cooldown, message }`                        |
+| 端点                                                                 | 请求                                                                                                            | 响应                                           |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `POST /api/v1/auth/register`                                         | `{ email, password, code, captchaToken?, nickname? }`，**`.strict()`**                                          | `201 { user: UserBrief, tokens }`              |
+| `POST /api/v1/auth/login`                                            | `{ email, password?, code?, captchaToken? }`（密码与验证码二选一），**`.strict()`**                             | `200 { user: UserFull, tokens }`               |
+| `POST /api/v1/auth/refresh`                                          | `{ refreshToken }`，**`@Public()`**                                                                             | `200 { accessToken, refreshToken, expiresIn }` |
+| `POST /api/v1/auth/logout`                                           | `{ refreshToken }`                                                                                              | 需鉴权                                         |
+| `GET /api/v1/auth/devices`、`DELETE /api/v1/auth/devices/:sessionId` | —                                                                                                               | 需鉴权                                         |
+| `GET /api/v1/auth/captcha`                                           | —                                                                                                               | `{ enabled, siteKey }`                         |
+| `POST /api/v1/auth/send-verification-code`                           | `{ email, scene }`，scene ∈ `register`/`login`/`change-email`/`set-password`/`delete-account`/`forgot-password` | `{ cooldown, message }`                        |
 
 六个最容易踩的契约细节：
 
@@ -259,7 +259,7 @@ sessionStore = isTauri ? tauriStore() : webCookieStore()
 
 **验收**：单测覆盖「默认头 + 调用方头并存」与「ProblemDetails 解析」。
 
-#### F2 修 `desktop.yml`（三处 `apps/desktop` → `apps/lumine`）
+#### F2 修 desktop workflow（三处 `apps/desktop` → `apps/lumine`；文件已并名为 `lumine.yml`）
 
 **验收**：本地逐条跑通 workflow 命令；push 后 job 真的被触发。
 
@@ -326,7 +326,7 @@ Lumine **没有测试设施**（`package.json` 无 vitest/jest；`docs/security-
 
 - [ ] `git grep -i clerk` 零命中；`.clerk/`、`.env.local` 无 Clerk 变量
 - [ ] `build` / `typecheck` / `lint` / `format:check` 全绿
-- [ ] `desktop.yml` 与 `apps/lumine` 一致；改 `apps/lumine/src/**` 能触发
+- [ ] desktop workflow（现 `lumine.yml`）与 `apps/lumine` 一致；改 `apps/lumine/src/**` 能触发
 - [ ] `api-client` 单测通过；`isTauri()` 在浏览器里返回 `false`
 
 ### 认证档
@@ -358,19 +358,17 @@ Lumine **没有测试设施**（`package.json` 无 vitest/jest；`docs/security-
 
 ### 已决（2026-10-22 / 10-23）
 
-| #   | 问题                              | 决定                                                                                                                                         |
-| --- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q1  | 凭据存储 A / B / C                | **A**：httpOnly cookie 会话。选 B/C 会让 XSS 直接等于账号接管，而 Web 端与文档站同域，代价不可接受。                                         |
-| Q2  | Lucent 加 cookie 会话是否纳入范围 | **纳入**。新增 `/auth/session/*` 与 `/auth/me`，Bearer 契约保持不动（手机端不受影响）；按 ADR-0024 落在 `domain/application/adapters` 三层。 |
-| Q3  | 「Continue with GitHub」按钮      | **删除**。Lucent 的 OAuth 只有微信/QQ/Google/Apple，模板那个按钮从来没有后端。                                                               |
-| Q4  | 是否引入 i18n                     | **引入，默认英文**。资源在 `src/lib/i18n/locales/{en,zh-CN}`，切换入口在账号菜单；校验消息用 i18n key。                                      |
-| —   | API 类型怎么来                    | **由 OpenAPI 生成**（`openapi-typescript` + `openapi-fetch`），不手写。`pnpm contract` 生成 `src/lib/generated/lucent-api.ts`。              |
+| #   | 问题                              | 决定                                                                                                                            |
+| --- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Q1  | 凭据存储 A / B / C                | **A**：httpOnly cookie 会话。选 B/C 会让 XSS 直接等于账号接管，而 Web 端与文档站同域，代价不可接受。                            |
+| Q2  | Lucent 加 cookie 会话是否纳入范围 | **纳入**。新增 `/auth/sessions/*`，Bearer 契约保持不动（手机端不受影响）；按 ADR-0024 落在 `domain/application/adapters` 三层。 |
+| Q3  | 「Continue with GitHub」按钮      | **删除**。Lucent 的 OAuth 只有微信/QQ/Google/Apple，模板那个按钮从来没有后端。                                                  |
+| Q4  | 是否引入 i18n                     | **引入，默认英文**。资源在 `src/lib/i18n/locales/{en,zh-CN}`，切换入口在账号菜单；校验消息用 i18n key。                         |
+| —   | API 类型怎么来                    | **由 OpenAPI 生成**（`openapi-typescript` + `openapi-fetch`），不手写。`pnpm contract` 生成 `src/generated/lucent-api.ts`。     |
 
 ### 剩余
 
-| 项            | 说明                                                                                                                                                       |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q5 域名       | Web 端挂哪个域名仍未定，影响 `CORS_ORIGIN` 与路由 `basePath`。桌面端不受影响（Tauri 内嵌）。                                                               |
-| 刷新单飞      | 当前 refresh 只在 401 后由调用方触发；并发请求可能各触发一次。轮换会让旧 refresh 作废，所以**必须**加单飞。见 Lucent 的 refresh 端点在重复消费时返回 401。 |
-| Turnstile     | 后端已支持（`GET /auth/captcha` + `AUTH_CAPTCHA_REQUIRED`），前端已能识别该错误码，但**尚未渲染 Turnstile 组件**。                                         |
-| 收藏/最近打开 | PRODUCT.md §11.2 要求跟随账号同步；本计划只做了账号区，同步逻辑未做。                                                                                      |
+| 项            | 说明                                                                                         |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| Q5 域名       | Web 端挂哪个域名仍未定，影响 `CORS_ORIGIN` 与路由 `basePath`。桌面端不受影响（Tauri 内嵌）。 |
+| 收藏/最近打开 | PRODUCT.md §11.2 要求跟随账号同步；本计划只做了账号区，同步逻辑未做。                        |

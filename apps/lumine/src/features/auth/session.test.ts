@@ -8,7 +8,7 @@ vi.mock('@/features/auth/api/session-refresh', () => ({
 }));
 
 vi.mock('@/features/auth/api/service', () => ({
-  me: vi.fn(),
+  getAccount: vi.fn(),
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn()
@@ -32,6 +32,20 @@ const USER = {
   updatedAt: '2026-01-01T00:00:00.000Z'
 };
 
+/** GET /account 的响应形状：比会话用户多 hasPassword / lastLoginAt / linkedIdentities。 */
+const ACCOUNT = {
+  id: 'u1',
+  email: 'a@b.c',
+  nickname: '测试',
+  avatar: null,
+  emailVerifiedAt: '2026-01-01T00:00:00.000Z',
+  hasPassword: true,
+  lastLoginAt: null,
+  linkedIdentities: [],
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z'
+};
+
 function apiError(status: number, code: string): ApiError {
   return new ApiError(parseProblemDetails(status, { code }));
 }
@@ -49,7 +63,7 @@ describe('会话状态', () => {
   });
 
   it('bootstrap 成功 → authenticated', async () => {
-    mocked.me.mockResolvedValue(USER);
+    mocked.getAccount.mockResolvedValue(ACCOUNT);
 
     await useSessionStore.getState().bootstrap();
 
@@ -60,19 +74,19 @@ describe('会话状态', () => {
   it('bootstrap 遇到 401 时先静默续期，续期成功仍在登录态', async () => {
     // access token 过期 ≠ 会话结束：refresh cookie 还活着就该自动续上，
     // 而不是把用户踢去登录页。
-    mocked.me.mockRejectedValueOnce(apiError(401, 'AUTH_TOKEN_EXPIRED'));
+    mocked.getAccount.mockRejectedValueOnce(apiError(401, 'AUTH_TOKEN_EXPIRED'));
     mockedRefresh.mockResolvedValue({ user: USER, expiresIn: 900 });
 
     await useSessionStore.getState().bootstrap();
 
     expect(mockedRefresh).toHaveBeenCalledTimes(1);
     expect(useSessionStore.getState().status).toBe('authenticated');
-    // 续期已带回用户，不必再打一次 /auth/me。
-    expect(mocked.me).toHaveBeenCalledTimes(1);
+    // 续期已带回用户，不必再打一次 /account。
+    expect(mocked.getAccount).toHaveBeenCalledTimes(1);
   });
 
   it('bootstrap 续期失败 → anonymous，不抛错', async () => {
-    mocked.me.mockRejectedValue(apiError(401, 'AUTH_TOKEN_EXPIRED'));
+    mocked.getAccount.mockRejectedValue(apiError(401, 'AUTH_TOKEN_EXPIRED'));
     mockedRefresh.mockRejectedValue(apiError(401, 'AUTH_REFRESH_TOKEN_INVALID'));
 
     await expect(useSessionStore.getState().bootstrap()).resolves.toBeUndefined();
@@ -80,7 +94,7 @@ describe('会话状态', () => {
   });
 
   it('bootstrap 遇到非会话失效错误不触发续期', async () => {
-    mocked.me.mockRejectedValue(apiError(503, 'DEPENDENCY_UNAVAILABLE'));
+    mocked.getAccount.mockRejectedValue(apiError(503, 'DEPENDENCY_UNAVAILABLE'));
 
     await useSessionStore.getState().bootstrap();
 
@@ -98,7 +112,7 @@ describe('会话状态', () => {
   });
 
   it('bootstrap 遇到网络错误也回到 anonymous，而不是卡在 unknown', async () => {
-    mocked.me.mockRejectedValue(new NetworkError('offline', null));
+    mocked.getAccount.mockRejectedValue(new NetworkError('offline', null));
 
     await useSessionStore.getState().bootstrap();
 

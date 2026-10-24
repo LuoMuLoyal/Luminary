@@ -48,7 +48,7 @@ describe('problem details 中间件', () => {
     );
 
     const error = await client
-      .POST('/api/v1/auth/session/login', { body: { email: 'a@b.c' } })
+      .POST('/api/v1/auth/sessions/login', { body: { email: 'a@b.c' } })
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
@@ -62,7 +62,7 @@ describe('problem details 中间件', () => {
     );
 
     const error = await client
-      .POST('/api/v1/auth/session/login', { body: { email: 'a@b.c' } })
+      .POST('/api/v1/auth/sessions/login', { body: { email: 'a@b.c' } })
       .catch((e: unknown) => e);
 
     expect((error as ApiError).code).toBe('AUTH_CAPTCHA_REQUIRED');
@@ -76,7 +76,7 @@ describe('problem details 中间件', () => {
       })
     );
 
-    const error = await client.GET('/api/v1/auth/me').catch((e: unknown) => e);
+    const error = await client.GET('/api/v1/account').catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).status).toBe(502);
@@ -86,7 +86,7 @@ describe('problem details 中间件', () => {
   it('2xx 原样放行', async () => {
     const client = clientReturning(jsonResponse(200, { user: { id: 'u1' }, expiresIn: 900 }));
 
-    const result = await client.POST('/api/v1/auth/session/login', {
+    const result = await client.POST('/api/v1/auth/sessions/login', {
       body: { email: 'a@b.c' }
     });
 
@@ -131,7 +131,7 @@ describe('客户端配置', () => {
       }
     });
 
-    await client.GET('/api/v1/auth/me');
+    await client.GET('/api/v1/account');
 
     expect(requests[0]?.credentials).toBe('include');
   });

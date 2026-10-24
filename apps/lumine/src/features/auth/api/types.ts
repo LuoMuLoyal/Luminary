@@ -11,17 +11,30 @@
 
 import type { components } from '@/generated/lucent-api';
 
-/** 会话用户资料（`/auth/me` 与登录/注册/刷新的响应共用）。 */
+/**
+ * 会话用户资料（登录/注册/刷新的响应共用）。
+ *
+ * 账户资料的**读入口**是 `GET /account`（`AccountInfo`），这里只是「会话建立」
+ * 的产物：它没有 `hasPassword` / `linkedIdentities`，够用来填登录态。
+ */
 export type SessionUser = components['schemas']['SessionResponseUser'];
 
 /** 建立或轮换会话的响应。`expiresIn` 是 access token 的剩余秒数。 */
 export type SessionResponse = components['schemas']['SessionResponse'];
 
+/**
+ * 账户资料（`GET /account`）。
+ *
+ * 比 `SessionUser` 多 `hasPassword` / `lastLoginAt` / `linkedIdentities`，
+ * 用来决定「是否显示设置密码」「有哪些第三方身份」。
+ */
+export type AccountInfo = components['schemas']['AccountResponse'];
+
 /** 登录请求体。密码与验证码二选一。 */
-export type LoginRequest = components['schemas']['LoginSessionRequest'];
+export type LoginRequest = components['schemas']['LoginWithCookieRequest'];
 
 /** 注册请求体。`code` 是邮箱验证码，必填。 */
-export type RegisterRequest = components['schemas']['RegisterSessionRequest'];
+export type RegisterRequest = components['schemas']['RegisterWithCookieRequest'];
 
 /** `POST /auth/send-verification-code` 的响应：冷却秒数 + 提示文案。 */
 export type SendVerificationCodeResponse = components['schemas']['SendVerificationCodeResponse'];

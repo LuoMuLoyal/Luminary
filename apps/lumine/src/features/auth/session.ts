@@ -3,14 +3,19 @@ import { create } from 'zustand';
 import * as authApi from '@/features/auth/api/service';
 import { isSessionExpired } from '@/features/auth/api/errors';
 import { refreshSession } from '@/features/auth/api/session-refresh';
-import type { LoginRequest, RegisterRequest, SessionUser } from '@/features/auth/api/types';
+import type {
+  AccountInfo,
+  LoginRequest,
+  RegisterRequest,
+  SessionUser
+} from '@/features/auth/api/types';
 
 /**
  * 会话状态。
  *
  * ## 这个 store 里为什么没有 token
  *
- * 会话走 httpOnly cookie（见 Lucent 的 `/auth/session/*`），token 由浏览器收下，
+ * 会话走 httpOnly cookie（见 Lucent 的 `/auth/sessions/*`），token 由浏览器收下，
  * **脚本读不到**。所以这里能存的只有「用户是谁 + 登录态三态」，这正是设计意图：
  * 即使发生 XSS，也偷不到可复用的凭据。
  *
@@ -28,7 +33,7 @@ import type { LoginRequest, RegisterRequest, SessionUser } from '@/features/auth
  * ## access token 过期 ≠ 会话结束
  *
  * access token 短命（分钟级到小时级），refresh cookie 长命。SPA 闲置一段时间后
- * `me()` 会拿到 `AUTH_TOKEN_EXPIRED`，但**会话其实还在**。所以 `bootstrap` 在这
+ * `getAccount()` 会拿到 `AUTH_TOKEN_EXPIRED`，但**会话其实还在**。所以 `bootstrap` 在这
  * 种情况下先尝试静默续期再重试一次，而不是直接把人踢去登录页。
  *
  * 续期走 `refreshSession()`——**单飞**的那个入口。并发场景下多个请求同时发现
@@ -37,6 +42,30 @@ import type { LoginRequest, RegisterRequest, SessionUser } from '@/features/auth
  */
 
 export type SessionStatus = 'unknown' | 'authenticated' | 'anonymous';
+
+/**
+ * 账户资料 → 会话用户。
+ *
+ * `GET /account` 是账户资料的读入口，但它比登录响应多几个字段、`email` 也可空
+ * （OAuth-only 账号）。store 里只放「填登录态需要的那部分」，因此在这里收窄一次，
+ * 而不是让两个 schema 在组件里混用。
+ *
+ * `email` 为空时用空串：界面上「没有邮箱」的正确表达由 `email` 是否为空串承载，
+ * 比在每个调用点判 `null` 少一类分支。
+ */
+function toSessionUser(account: AccountInfo): SessionUser {
+  return {
+    id: account.id,
+    email: account.email ?? '',
+    nickname: account.nickname,
+    avatar: account.avatar,
+    // `AccountDto` 只有 `emailVerifiedAt`，没有布尔位；已验证 ⟺ 时间非空。
+    emailVerified: account.emailVerifiedAt !== null,
+    emailVerifiedAt: account.emailVerifiedAt,
+    createdAt: account.createdAt,
+    updatedAt: account.updatedAt
+  };
+}
 
 interface SessionState {
   status: SessionStatus;
@@ -61,7 +90,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
 
   async bootstrap() {
     try {
-      const user = await authApi.me();
+      const user = toSessionUser(await authApi.getAccount());
       set({ status: 'authenticated', user });
       return;
     } catch (error) {

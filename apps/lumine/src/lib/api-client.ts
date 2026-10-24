@@ -17,7 +17,7 @@
  *
  * ## cookie
  *
- * 会话走 httpOnly cookie（`/auth/session/*`），因此全局 `credentials: 'include'`。
+ * 会话走 httpOnly cookie（`/auth/sessions/*`），因此全局 `credentials: 'include'`。
  * 这不是可选项——漏掉它浏览器不会带 cookie，表现是「登录成功但立刻 401」。
  */
 
@@ -100,7 +100,7 @@ export class NetworkError extends Error {
  *
  * `openapi-fetch` 不抛错，返回 `{ data, error, response }`。业务代码里
  * 大多数路径只关心成功值，所以包一层；需要精细处理响应头的地方可以直接用
- * {@link lucent}（`/auth/session/*` 的 `expiresIn` 已在响应体里，不必读头）。
+ * {@link lucent}（`/auth/sessions/*` 的 `expiresIn` 已在响应体里，不必读头）。
  *
  * @param result `openapi-fetch` 的返回值。
  * @throws {ApiError} 非 2xx（由中间件抛出前已转换）。

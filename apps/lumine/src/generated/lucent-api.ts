@@ -533,6 +533,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List signed-in devices for the current user */
+        get: operations["listDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/devices/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a signed-in device */
+        delete: operations["revokeDevice"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -578,23 +612,6 @@ export type paths = {
         put?: never;
         /** User logout */
         post: operations["logout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Current user (cookie session) */
-        get: operations["getMe"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -806,7 +823,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/session/login": {
+    "/api/v1/auth/sessions/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -816,14 +833,14 @@ export type paths = {
         get?: never;
         put?: never;
         /** Login (httpOnly cookie session) */
-        post: operations["loginSession"];
+        post: operations["loginWithCookie"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/session/logout": {
+    "/api/v1/auth/sessions/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -833,14 +850,14 @@ export type paths = {
         get?: never;
         put?: never;
         /** Logout (clears the cookie session) */
-        post: operations["logoutSession"];
+        post: operations["logoutWithCookie"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/session/refresh": {
+    "/api/v1/auth/sessions/refresh": {
         parameters: {
             query?: never;
             header?: never;
@@ -850,14 +867,14 @@ export type paths = {
         get?: never;
         put?: never;
         /** Rotate the cookie session */
-        post: operations["refreshCookieSession"];
+        post: operations["refreshWithCookie"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/session/register": {
+    "/api/v1/auth/sessions/register": {
         parameters: {
             query?: never;
             header?: never;
@@ -867,42 +884,8 @@ export type paths = {
         get?: never;
         put?: never;
         /** Register (httpOnly cookie session) */
-        post: operations["registerSession"];
+        post: operations["registerWithCookie"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List active sessions for the current user */
-        get: operations["listSessions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/sessions/{sessionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Revoke a specific session */
-        delete: operations["revokeSession"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5223,16 +5206,6 @@ export type components = {
             /** @description 更新时间 (ISO 8601) */
             updatedAt: string;
         };
-        LoginSessionRequest: {
-            /** @description 人机验证令牌 */
-            captchaToken?: string;
-            /** @description 邮箱验证码（与密码二选一） */
-            code?: string;
-            /** @description 邮箱地址 */
-            email: string;
-            /** @description 密码（与验证码二选一） */
-            password?: string;
-        };
         LoginWithAppleRequest: {
             /** @description Apple 登录返回的 authorizationCode（可选） */
             authorizationCode?: string;
@@ -5242,6 +5215,16 @@ export type components = {
             givenName?: string;
             /** @description Apple 登录返回的 identityToken (JWT) */
             identityToken: string;
+        };
+        LoginWithCookieRequest: {
+            /** @description 人机验证令牌 */
+            captchaToken?: string;
+            /** @description 邮箱验证码（与密码二选一） */
+            code?: string;
+            /** @description 邮箱地址 */
+            email: string;
+            /** @description 密码（与验证码二选一） */
+            password?: string;
         };
         LoginWithGoogleRequest: {
             /** @description OAuth 授权码 */
@@ -6250,7 +6233,7 @@ export type components = {
             /** @description 昵称 */
             nickname: string | null;
         };
-        RegisterSessionRequest: {
+        RegisterWithCookieRequest: {
             /** @description 人机验证令牌 */
             captchaToken?: string;
             /** @description 邮箱验证码 */
@@ -6634,24 +6617,6 @@ export type components = {
             user: components["schemas"]["SessionResponseUser"];
         };
         SessionResponseUser: {
-            /** @description 头像 URL */
-            avatar: string | null;
-            /** @description 创建时间 (ISO 8601) */
-            createdAt: string;
-            /** @description 邮箱地址 */
-            email: string;
-            /** @description 邮箱是否已验证 */
-            emailVerified: boolean;
-            /** @description 邮箱验证时间 (ISO 8601) */
-            emailVerifiedAt: string | null;
-            /** @description 用户 ID */
-            id: string;
-            /** @description 昵称 */
-            nickname: string | null;
-            /** @description 更新时间 (ISO 8601) */
-            updatedAt: string;
-        };
-        SessionUser: {
             /** @description 头像 URL */
             avatar: string | null;
             /** @description 创建时间 (ISO 8601) */
@@ -9365,6 +9330,100 @@ export interface operations {
             };
         };
     };
+    listDevices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The signed-in devices of the current user. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListItem"];
+                };
+            };
+            /** @description Access token invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Authentication method unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    revokeDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Device revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Access token invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Session belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Session not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Authentication method unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
     forgotPassword: {
         parameters: {
             query?: never;
@@ -9516,35 +9575,6 @@ export interface operations {
             };
             /** @description Authentication method unavailable */
             503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    getMe: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The authenticated user. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionUser"];
-                };
-            };
-            /** @description Access token invalid or expired (sent as a cookie) */
-            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10243,7 +10273,7 @@ export interface operations {
             };
         };
     };
-    loginSession: {
+    loginWithCookie: {
         parameters: {
             query?: never;
             header?: never;
@@ -10252,7 +10282,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LoginSessionRequest"];
+                "application/json": components["schemas"]["LoginWithCookieRequest"];
             };
         };
         responses: {
@@ -10303,7 +10333,7 @@ export interface operations {
             };
         };
     };
-    logoutSession: {
+    logoutWithCookie: {
         parameters: {
             query?: never;
             header?: never;
@@ -10330,7 +10360,7 @@ export interface operations {
             };
         };
     };
-    refreshCookieSession: {
+    refreshWithCookie: {
         parameters: {
             query?: never;
             header?: never;
@@ -10359,7 +10389,7 @@ export interface operations {
             };
         };
     };
-    registerSession: {
+    registerWithCookie: {
         parameters: {
             query?: never;
             header?: never;
@@ -10368,7 +10398,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterSessionRequest"];
+                "application/json": components["schemas"]["RegisterWithCookieRequest"];
             };
         };
         responses: {
@@ -10392,100 +10422,6 @@ export interface operations {
             };
             /** @description Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code) */
             401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Authentication method unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    listSessions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The active sessions of the current user. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionListItem"];
-                };
-            };
-            /** @description Access token invalid or expired */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Authentication method unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    revokeSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                sessionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Session revoked. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Access token invalid or expired */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Session belongs to another user */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Session not found */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -17,7 +17,7 @@ export async function login(body: {
   code?: string;
   captchaToken?: string;
 }) {
-  return expectData(await lucent.POST('/api/v1/auth/session/login', { body }));
+  return expectData(await lucent.POST('/api/v1/auth/sessions/login', { body }));
 }
 
 /** 注册并建立会话。`code` 是邮箱验证码，必填。 */
@@ -28,27 +28,35 @@ export async function register(body: {
   captchaToken?: string;
   nickname?: string;
 }) {
-  return expectData(await lucent.POST('/api/v1/auth/session/register', { body }));
+  return expectData(await lucent.POST('/api/v1/auth/sessions/register', { body }));
 }
 
 /** 轮换会话。access token 过期时由会话层调用。 */
 export async function refresh() {
-  return expectData(await lucent.POST('/api/v1/auth/session/refresh', {}));
+  return expectData(await lucent.POST('/api/v1/auth/sessions/refresh', {}));
 }
 
 /** 登出并清掉 cookie。幂等：没有会话时也应视为成功。 */
 export async function logout(): Promise<void> {
   // 204 没有响应体，所以不能用 expectData（它会要求 data 存在）。
-  const { response, error } = await lucent.POST('/api/v1/auth/session/logout', {});
+  const { response, error } = await lucent.POST('/api/v1/auth/sessions/logout', {});
   if (error !== undefined || !response.ok) {
     // 中间件通常已经抛错；这里兜住「中间件未命中」的路径，保持语义一致。
     throw new NetworkError(`Logout failed with ${String(response.status)}`, error);
   }
 }
 
-/** 读取当前登录用户。401 表示未登录，调用方不应把它当错误展示。 */
-export async function me() {
-  return expectData(await lucent.GET('/api/v1/auth/me'));
+/**
+ * 读取当前账户资料。
+ *
+ * 走 `GET /account`——账户资料只有这一个读入口。登录/注册/刷新的响应里虽然也
+ * 带用户块，但那是「会话建立」的产物；会话恢复（刷新页面、access token 过期后
+ * 重试）应当读账户资料，而不是把登录时的快照当权威。
+ *
+ * 401 表示未登录，调用方不应把它当错误展示。
+ */
+export async function getAccount() {
+  return expectData(await lucent.GET('/api/v1/account'));
 }
 
 /**

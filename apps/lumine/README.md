@@ -64,11 +64,15 @@ src-tauri/         # Rust 外壳、图标、Tauri 配置
 
 ## 认证
 
-认证走 **Lucent 的 httpOnly cookie 会话**（`/api/v1/auth/session/*` 与 `/api/v1/auth/me`），
-Web 与桌面两个宿主共用同一条路径：
+认证走 **Lucent 的 httpOnly cookie 会话**（`/api/v1/auth/sessions/*`），
+账户资料读 `GET /api/v1/account`，Web 与桌面两个宿主共用同一条路径：
 
 - token 由浏览器以 `Set-Cookie` 收下，**前端代码读不到**，所以 `session.ts` 里
   不存 token，只存「用户是谁 + 登录态三态（unknown / authenticated / anonymous）」。
+- **没有 `/auth/me`**：账户资料只有一个读入口 `/account`。登录/注册/刷新的响应里虽然
+  也带 `user` 块，但那是会话建立的产物；会话恢复（首屏、续期后重试）读 `/account`。
+  `bootstrap` 会把 `AccountResponse` 收窄成 `SessionUser`（`email` 可空、没有
+  `emailVerified` 布尔位，这两处由 `toSessionUser()` 补齐）。
 - `unknown` 表达「还没问过服务端」。SPA 没有服务端可判定登录态，把它当成 false
   会让每次刷新先闪一下登录页——这是三态而非布尔的原因。
 - 会话轮换走 `refreshSession()`，**单飞**：Lucent 的轮换是一次性的，并发刷新会让
