@@ -71,8 +71,11 @@ src-tauri/         # Rust 外壳、图标、Tauri 配置
   不存 token，只存「用户是谁 + 登录态三态（unknown / authenticated / anonymous）」。
 - **没有 `/auth/me`**：账户资料只有一个读入口 `/account`。登录/注册/刷新的响应里虽然
   也带 `user` 块，但那是会话建立的产物；会话恢复（首屏、续期后重试）读 `/account`。
-  `bootstrap` 会把 `AccountResponse` 收窄成 `SessionUser`（`email` 可空、没有
-  `emailVerified` 布尔位，这两处由 `toSessionUser()` 补齐）。
+  `bootstrap` 把 `AccountResponse` 收窄成 `SessionUser`（`toSessionUser()`），
+  只保留填登录态需要的字段；`emailVerified` 由 `emailVerifiedAt` 推导。
+- **`email` 可能为 null**：微信等 OAuth-only 账号在补填邮箱前没有邮箱。
+  store 里保留可空（不压成空串），展示层（`account-menu.tsx`）逐级兜底到
+  `auth.account.noEmail`。不要写 `user.email!`——那只是把编译器检查关掉。
 - `unknown` 表达「还没问过服务端」。SPA 没有服务端可判定登录态，把它当成 false
   会让每次刷新先闪一下登录页——这是三态而非布尔的原因。
 - 会话轮换走 `refreshSession()`，**单飞**：Lucent 的轮换是一次性的，并发刷新会让

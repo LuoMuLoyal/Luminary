@@ -34,8 +34,11 @@ export function AccountMenu() {
   // 避免会话在页面挂载后被踢掉时读到 null。
   if (user === null) return null;
 
-  const displayName = user.nickname ?? user.email;
-  const initial = displayName.trim().charAt(0).toUpperCase();
+  // OAuth-only 账号（如微信登录）可能还没有邮箱，此时昵称也可能为空。
+  // 逐级兜底：昵称 → 邮箱 → 通用占位。头像首字母同理，不能对空串取值。
+  const secondary = user.email ?? t('auth.account.noEmail');
+  const displayName = user.nickname ?? user.email ?? t('auth.account.openMenu');
+  const initial = displayName.trim().charAt(0).toUpperCase() || '·';
 
   async function handleLogout() {
     try {
@@ -64,7 +67,7 @@ export function AccountMenu() {
           </Avatar>
           <div className='grid flex-1 text-left text-sm leading-tight'>
             <span className='truncate font-medium'>{displayName}</span>
-            <span className='text-muted-foreground truncate text-xs'>{user.email}</span>
+            <span className='text-muted-foreground truncate text-xs'>{secondary}</span>
           </div>
           <Icons.chevronsDown className='ml-auto size-4' />
         </SidebarMenuButton>
@@ -78,7 +81,7 @@ export function AccountMenu() {
         <DropdownMenuLabel className='font-normal'>
           <div className='flex flex-col space-y-1'>
             <p className='text-sm leading-none font-medium'>{displayName}</p>
-            <p className='text-muted-foreground text-xs leading-none'>{user.email}</p>
+            <p className='text-muted-foreground text-xs leading-none'>{secondary}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

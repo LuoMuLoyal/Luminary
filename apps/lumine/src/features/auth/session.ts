@@ -46,17 +46,18 @@ export type SessionStatus = 'unknown' | 'authenticated' | 'anonymous';
 /**
  * 账户资料 → 会话用户。
  *
- * `GET /account` 是账户资料的读入口，但它比登录响应多几个字段、`email` 也可空
- * （OAuth-only 账号）。store 里只放「填登录态需要的那部分」，因此在这里收窄一次，
- * 而不是让两个 schema 在组件里混用。
+ * `GET /account` 是账户资料的读入口，但它比登录响应多几个字段
+ * （`hasPassword` / `lastLoginAt` / `linkedIdentities`），store 里只放
+ * 「填登录态需要的那部分」，因此在这里收窄一次，而不是让两个 schema 在组件里混用。
  *
- * `email` 为空时用空串：界面上「没有邮箱」的正确表达由 `email` 是否为空串承载，
- * 比在每个调用点判 `null` 少一类分支。
+ * `email` **保持可空**：OAuth-only 账号（如微信登录）真的没有邮箱，直到用户
+ * 通过「设置邮箱」补一个。把它压成空串会让「没登录」「没邮箱」「邮箱是空串」
+ * 三种状态长得一样，调用点也失去编译器保护。展示层（账号菜单）自己做兜底。
  */
 function toSessionUser(account: AccountInfo): SessionUser {
   return {
     id: account.id,
-    email: account.email ?? '',
+    email: account.email,
     nickname: account.nickname,
     avatar: account.avatar,
     // `AccountDto` 只有 `emailVerifiedAt`，没有布尔位；已验证 ⟺ 时间非空。

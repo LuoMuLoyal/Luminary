@@ -82,6 +82,12 @@ jobs:
       - name: Typecheck
         run: pnpm --filter @luminary/lumine typecheck
 
+      # 单元测试：契约错误解析、错误码映射、会话三态、单飞续期、头合并。
+      # 这些是认证层最容易回归的部分（会话轮换竞态、Problem Details 解析），
+      # 而它们**不依赖** Lucent 运行时——vitest 用注入的假 fetch，所以 CI 里能跑。
+      - name: 单元测试
+        run: pnpm --filter @luminary/lumine test
+
       # SPA 构建必须成功——Tauri 不支持服务端方案（见 planning §8.6）。
       - name: 构建（SPA）
         run: pnpm --filter @luminary/lumine build

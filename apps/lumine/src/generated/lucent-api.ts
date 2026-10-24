@@ -6621,8 +6621,8 @@ export type components = {
             avatar: string | null;
             /** @description 创建时间 (ISO 8601) */
             createdAt: string;
-            /** @description 邮箱地址 */
-            email: string;
+            /** @description 邮箱地址。OAuth-only 账号在补填邮箱前为 null */
+            email: string | null;
             /** @description 邮箱是否已验证 */
             emailVerified: boolean;
             /** @description 邮箱验证时间 (ISO 8601) */
