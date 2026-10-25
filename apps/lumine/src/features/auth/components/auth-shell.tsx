@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { InteractiveGridPattern } from './interactive-grid';
+import { LanguageSwitcher } from './language-switcher';
 
 /**
  * 登录与注册共用的左右分栏壳。
@@ -27,7 +28,12 @@ export function AuthShell({ switchAction, title, description, children, footer }
 
   return (
     <div className='relative flex min-h-screen flex-col items-center justify-center overflow-hidden md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
-      <div className='absolute top-4 right-4 md:top-8 md:right-8'>{switchAction}</div>
+      {/* 右上角：语言切换 + 登录/注册互跳。两者放在同一行，语言永远在最右侧，
+          这样表单页也有语言入口（账号菜单只在登录后才出现）。 */}
+      <div className='absolute top-4 right-4 flex items-center gap-2 md:top-8 md:right-8'>
+        <LanguageSwitcher />
+        {switchAction}
+      </div>
 
       <div className='relative hidden h-full flex-col p-10 lg:flex dark:border-r'>
         <div className='absolute inset-0 bg-sidebar' />

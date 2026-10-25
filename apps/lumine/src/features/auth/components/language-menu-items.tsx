@@ -1,11 +1,16 @@
 import { useTranslation } from 'react-i18next';
 
-import { DropdownMenuItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Icons } from '@/components/icons';
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, setLanguage, type Language } from '@/lib/i18n';
 
 /**
- * 账号菜单里的语言切换项。
+ * 语言切换菜单项。
+ *
+ * ## 没有标题行
+ *
+ * 曾有一行「Language」标签。触发按钮本身已经显示当前语言（`English` /
+ * `简体中文`），账号菜单里的语言项又紧跟在账号信息下方，标题只是重复。
  *
  * ## 为什么放在账号菜单而不是主题区
  *
@@ -19,7 +24,7 @@ import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, setLanguage, type Language } from
  * 动画期间重渲染整棵树，偶发闪烁。这里让选择先完成，再异步切语言。
  */
 export function LanguageMenuItems() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const current = i18n.resolvedLanguage;
 
   function change(language: Language) {
@@ -31,9 +36,6 @@ export function LanguageMenuItems() {
 
   return (
     <>
-      <DropdownMenuLabel className='text-muted-foreground text-xs font-normal'>
-        {t('language.label')}
-      </DropdownMenuLabel>
       {SUPPORTED_LANGUAGES.map((language) => (
         <DropdownMenuItem
           key={language}
