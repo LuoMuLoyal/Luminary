@@ -86,3 +86,4 @@ Links, prior discussions, related ADRs.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [0001](0001-record-architecture-decisions.md) | Architecture decisions are recorded as ADRs | proposed |
+| [0002](0002-documentation-placement.md) | Documentation lives at the lowest common ancestor of what it describes | proposed |
