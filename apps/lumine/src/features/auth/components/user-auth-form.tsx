@@ -5,12 +5,13 @@ import { toast } from 'sonner';
 import * as z from 'zod';
 
 import { Button } from '@/components/ui/button';
-import { FieldDescription, FieldGroup } from '@/components/ui/field';
+import { FieldGroup } from '@/components/ui/field';
 import { useAppForm } from '@/lib/form';
 import type { LoginRequest } from '@/features/auth/api/types';
 import { authErrorKey, captchaErrorKind } from '@/features/auth/api/errors';
 import { useSessionStore } from '@/features/auth/session';
 import { CaptchaField, useCaptchaConfig } from './captcha-field';
+import { ForgotPasswordForm } from './forgot-password-form';
 
 /**
  * 登录表单。
@@ -57,6 +58,8 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [mode, setMode] = useState<LoginMode>('password');
+  /** 是否处于「忘记密码」子流程。就地切换，不跳路由。 */
+  const [forgotMode, setForgotMode] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
 
   /**
@@ -106,31 +109,53 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
 
   return (
     <div className='space-y-4'>
-      {mode === 'password' ? (
-        <PasswordLoginForm onSubmit={submit} errorKey={errorKey} />
+      {forgotMode ? (
+        <ForgotPasswordForm onDone={() => setForgotMode(false)} />
       ) : (
-        <CodeLoginForm onSubmit={submit} errorKey={errorKey} />
+        <>
+          {mode === 'password' ? (
+            <PasswordLoginForm onSubmit={submit} errorKey={errorKey} />
+          ) : (
+            <CodeLoginForm onSubmit={submit} errorKey={errorKey} />
+          )}
+
+          {/* 只有服务端要求时才出现（见 captchaRequired 的说明）。
+              `captchaEnabled` 为 false 时不渲染任何东西，登录照常。 */}
+          {captchaRequired && captchaEnabled && (
+            <CaptchaField onTokenChange={setCaptchaToken} resetSignal={captchaResetSignal} />
+          )}
+
+          {/* 辅助入口只保留两条可操作的链接。原先这里挂的是
+              「忘记密码暂不支持，请联系管理员」——一句叙述，而且是错的：
+              Lucent 有 /auth/forgot-password + /auth/reset-password。 */}
+          <div className='flex flex-col gap-1'>
+            <Button
+              type='button'
+              variant='ghost'
+              className='w-full'
+              onClick={() => {
+                setErrorKey(null);
+                setMode(mode === 'password' ? 'code' : 'password');
+              }}
+            >
+              {mode === 'password' ? t('auth.action.useCode') : t('auth.action.usePassword')}
+            </Button>
+            {mode === 'password' && (
+              <Button
+                type='button'
+                variant='link'
+                className='text-muted-foreground w-full'
+                onClick={() => {
+                  setErrorKey(null);
+                  setForgotMode(true);
+                }}
+              >
+                {t('auth.action.forgotPassword')}
+              </Button>
+            )}
+          </div>
+        </>
       )}
-
-      {/* 只有服务端要求时才出现（见 captchaRequired 的说明）。
-          `captchaEnabled` 为 false 时不渲染任何东西，登录照常。 */}
-      {captchaRequired && captchaEnabled && (
-        <CaptchaField onTokenChange={setCaptchaToken} resetSignal={captchaResetSignal} />
-      )}
-
-      <Button
-        type='button'
-        variant='ghost'
-        className='w-full'
-        onClick={() => {
-          setErrorKey(null);
-          setMode(mode === 'password' ? 'code' : 'password');
-        }}
-      >
-        {mode === 'password' ? t('auth.action.useCode') : t('auth.action.usePassword')}
-      </Button>
-
-      <FieldDescription className='text-center'>{t('auth.footer.forgotPassword')}</FieldDescription>
     </div>
   );
 }

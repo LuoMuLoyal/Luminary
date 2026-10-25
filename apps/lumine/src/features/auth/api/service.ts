@@ -86,3 +86,26 @@ export async function sendVerificationCode(body: {
 export async function getCaptchaConfig() {
   return expectData(await lucent.GET('/api/v1/auth/captcha'));
 }
+
+/**
+ * 发起密码重置：向邮箱发送验证码，返回冷却秒数。
+ *
+ * 服务端对「邮箱是否存在」不做区分（统一返回成功），这是反枚举的设计；
+ * 前端不要因为「没收到码」就提示「该邮箱未注册」。
+ */
+export async function forgotPassword(body: { email: string }) {
+  return expectData(await lucent.POST('/api/v1/auth/forgot-password', { body }));
+}
+
+/**
+ * 用验证码设置新密码。
+ *
+ * 重置成功后服务端**不会**自动建立会话——旧会话可能已经在别处失效，
+ * 让用户用新密码显式登录一次，语义更清楚。
+ *
+ * 注意 `password` 在契约里是「8-32 位，需包含大小写字母和数字」，比注册的
+ * 最小长度校验更严；这里只做客户端最小长度前置校验，严格规则以服务端为准。
+ */
+export async function resetPassword(body: { email: string; code: string; password: string }) {
+  return expectData(await lucent.POST('/api/v1/auth/reset-password', { body }));
+}

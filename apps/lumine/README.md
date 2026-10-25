@@ -83,6 +83,10 @@ src-tauri/         # Rust 外壳、图标、Tauri 配置
   而不是直接把人踢去登录页。
 - 路由守卫在 `beforeLoad` 里做（`src/routes/dashboard.tsx`），并等 `unknown` 出结果；
   未登录时带 `redirect` 参数跳登录页，登录后回跳原路径。
+- **忘记密码**是登录页里就地展开的两步流程（`forgot-password-form.tsx`），
+  走 `POST /auth/forgot-password`（发码）与 `POST /auth/reset-password`（改密）。
+  成功后服务端不建会话，用户用新密码重新登录。不需要新增路由：重置的终点就是
+  返回登录页，跳出去再回来会把已填的邮箱丢掉。
 
 配置见 `env.example.txt`。**Lucent 侧必须把本客户端的来源加进 `CORS_ORIGIN`**
 （开发期 `http://localhost:1420`），否则预检失败且 Lucent 日志里看不到请求。
