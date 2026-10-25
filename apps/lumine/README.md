@@ -145,7 +145,10 @@ pnpm contract          # -> src/generated/lucent-api.ts（勿手改）
 - 初始化：`src/lib/i18n/index.ts`，`fallbackLng: 'en'`；
   用户选择记在 `localStorage.lumine.lang`，**不跟随浏览器语言自动切换**
   （默认界面语言是产品决策，不是运行环境推断）。
-- 切换入口：账号菜单里的语言项。
+- 切换入口：账号菜单里的语言项，**以及登录/注册页右上角的语言按钮**
+  （`language-switcher.tsx`）。后者是必需的：账号菜单只在登录后出现，否则一位
+  只读得懂中文的用户在默认英文界面上找不到切中文的地方。两处共用
+  `language-menu-items.tsx` 的选项，不各写一份。
 - 校验消息写成 **i18n key**（如 `auth.validation.emailInvalid`）而不是文案：
   zod schema 在模块加载时构造，那时取不到当前语言；`FieldError` 在渲染时按键翻译。
 - **不要在组件里写人类可读文案**，包括中文与英文。
