@@ -31,10 +31,10 @@ export type SessionResponse = components['schemas']['SessionResponse'];
 export type AccountInfo = components['schemas']['AccountResponse'];
 
 /** 登录请求体。密码与验证码二选一。 */
-export type LoginRequest = components['schemas']['LoginWithCookieRequest'];
+export type LoginRequest = components['schemas']['LoginInBrowserRequest'];
 
 /** 注册请求体。`code` 是邮箱验证码，必填。 */
-export type RegisterRequest = components['schemas']['RegisterWithCookieRequest'];
+export type RegisterRequest = components['schemas']['RegisterInBrowserRequest'];
 
 /** `POST /auth/send-verification-code` 的响应：冷却秒数 + 提示文案。 */
 export type SendVerificationCodeResponse = components['schemas']['SendVerificationCodeResponse'];

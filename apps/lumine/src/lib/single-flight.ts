@@ -3,7 +3,7 @@
  *
  * ## 为什么需要它
  *
- * 会话轮换是**一次性**的：`POST /auth/sessions/refresh` 会让旧的 refresh token
+ * 会话轮换是**一次性**的：`POST /auth/browser/refresh` 会让旧的 refresh token
  * 立即作废。如果两个请求同时拿到 401、各自触发一次刷新，第二个必然失败——
  * 用户会被莫名其妙地登出。
  *

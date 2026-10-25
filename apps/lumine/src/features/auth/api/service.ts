@@ -6,8 +6,12 @@ import { expectData, NetworkError, lucent } from '@/lib/api-client';
  * 路径与载荷由 `@/generated/lucent-api`（从 Lucent 的 openapi.json 生成）
  * 推导，因此这里没有手写的请求 / 响应类型：后端改字段，这里立刻是类型错误。
  *
- * 全部走 **httpOnly cookie 会话**（`/auth/session/*`）：响应体里没有 token，
+ * 全部走 **httpOnly cookie 会话**（`/auth/browser/*`）：响应体里没有 token，
  * cookie 由浏览器收下，脚本读不到。
+ *
+ * 路径用 `browser` 而不是 `cookie`：它表达的是**安全契约**（token 不进响应体、
+ * 脚本不可读），不是存储机制。Bearer 那条路（`/auth/login` 等）会把 token
+ * 放进响应体，供无法使用 cookie 的客户端使用——两者不能共用一个端点。
  */
 
 /** 登录并建立会话。 */
@@ -17,7 +21,7 @@ export async function login(body: {
   code?: string;
   captchaToken?: string;
 }) {
-  return expectData(await lucent.POST('/api/v1/auth/sessions/login', { body }));
+  return expectData(await lucent.POST('/api/v1/auth/browser/login', { body }));
 }
 
 /** 注册并建立会话。`code` 是邮箱验证码，必填。 */
@@ -28,18 +32,18 @@ export async function register(body: {
   captchaToken?: string;
   nickname?: string;
 }) {
-  return expectData(await lucent.POST('/api/v1/auth/sessions/register', { body }));
+  return expectData(await lucent.POST('/api/v1/auth/browser/register', { body }));
 }
 
 /** 轮换会话。access token 过期时由会话层调用。 */
 export async function refresh() {
-  return expectData(await lucent.POST('/api/v1/auth/sessions/refresh', {}));
+  return expectData(await lucent.POST('/api/v1/auth/browser/refresh', {}));
 }
 
 /** 登出并清掉 cookie。幂等：没有会话时也应视为成功。 */
 export async function logout(): Promise<void> {
   // 204 没有响应体，所以不能用 expectData（它会要求 data 存在）。
-  const { response, error } = await lucent.POST('/api/v1/auth/sessions/logout', {});
+  const { response, error } = await lucent.POST('/api/v1/auth/browser/logout', {});
   if (error !== undefined || !response.ok) {
     // 中间件通常已经抛错；这里兜住「中间件未命中」的路径，保持语义一致。
     throw new NetworkError(`Logout failed with ${String(response.status)}`, error);

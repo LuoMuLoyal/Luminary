@@ -48,7 +48,7 @@ describe('problem details 中间件', () => {
     );
 
     const error = await client
-      .POST('/api/v1/auth/sessions/login', { body: { email: 'a@b.c' } })
+      .POST('/api/v1/auth/browser/login', { body: { email: 'a@b.c' } })
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
@@ -62,7 +62,7 @@ describe('problem details 中间件', () => {
     );
 
     const error = await client
-      .POST('/api/v1/auth/sessions/login', { body: { email: 'a@b.c' } })
+      .POST('/api/v1/auth/browser/login', { body: { email: 'a@b.c' } })
       .catch((e: unknown) => e);
 
     expect((error as ApiError).code).toBe('AUTH_CAPTCHA_REQUIRED');
@@ -86,7 +86,7 @@ describe('problem details 中间件', () => {
   it('2xx 原样放行', async () => {
     const client = clientReturning(jsonResponse(200, { user: { id: 'u1' }, expiresIn: 900 }));
 
-    const result = await client.POST('/api/v1/auth/sessions/login', {
+    const result = await client.POST('/api/v1/auth/browser/login', {
       body: { email: 'a@b.c' }
     });
 

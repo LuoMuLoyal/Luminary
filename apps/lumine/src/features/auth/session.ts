@@ -15,7 +15,7 @@ import type {
  *
  * ## 这个 store 里为什么没有 token
  *
- * 会话走 httpOnly cookie（见 Lucent 的 `/auth/sessions/*`），token 由浏览器收下，
+ * 会话走 httpOnly cookie（见 Lucent 的 `/auth/browser/*`），token 由浏览器收下，
  * **脚本读不到**。所以这里能存的只有「用户是谁 + 登录态三态」，这正是设计意图：
  * 即使发生 XSS，也偷不到可复用的凭据。
  *

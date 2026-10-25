@@ -516,41 +516,7 @@ export type paths = {
         patch: operations["updateAdminUserStatus"];
         trace?: never;
     };
-    "/api/v1/auth/captcha": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Public human-verification widget configuration */
-        get: operations["LocalController_getCaptcha"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/devices": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List signed-in devices for the current user */
-        get: operations["listDevices"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/devices/{sessionId}": {
+    "/api/v1/auth/browser/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -559,9 +525,77 @@ export type paths = {
         };
         get?: never;
         put?: never;
+        /** Login (httpOnly cookie session) */
+        post: operations["loginInBrowser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/browser/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout (clears the cookie session) */
+        post: operations["logoutInBrowser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/browser/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate the cookie session */
+        post: operations["refreshInBrowser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/browser/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register (httpOnly cookie session) */
+        post: operations["registerInBrowser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/captcha": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public human-verification widget configuration */
+        get: operations["getCaptcha"];
+        put?: never;
         post?: never;
-        /** Revoke a signed-in device */
-        delete: operations["revokeDevice"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -823,24 +857,24 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/sessions/login": {
+    "/api/v1/auth/sessions": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List signed-in devices for the current user */
+        get: operations["listSessions"];
         put?: never;
-        /** Login (httpOnly cookie session) */
-        post: operations["loginWithCookie"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/sessions/logout": {
+    "/api/v1/auth/sessions/{sessionId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -849,43 +883,9 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Logout (clears the cookie session) */
-        post: operations["logoutWithCookie"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/sessions/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Rotate the cookie session */
-        post: operations["refreshWithCookie"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/sessions/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Register (httpOnly cookie session) */
-        post: operations["registerWithCookie"];
-        delete?: never;
+        post?: never;
+        /** Revoke a signed-in device */
+        delete: operations["revokeSession"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1078,6 +1078,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/medicines/medication-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Describe the caller's current medication combination */
+        get: operations["getMedicationOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/medicines/recognize": {
         parameters: {
             query?: never;
@@ -1121,6 +1138,159 @@ export type paths = {
         };
         /** Poll async medicine recognition status */
         get: operations["recognizeStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/relations/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What targets one drug acts on */
+        get: operations["listDrugActions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/relations/cascade-paths": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Four-hop metabolic cascade starting from one drug */
+        get: operations["listCascadePaths"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/relations/enzyme-duel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Induction vs substrate pairs: opposite effect on exposure */
+        get: operations["listEnzymeDuels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/relations/mechanism-paths": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Metabolic mechanism paths between drugs (INHIBITS/INDUCES x SUBSTRATE_OF) */
+        get: operations["listMechanismPaths"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/relations/shared-targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Targets shared by a set of drugs */
+        get: operations["listSharedTargets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/relations/shortest-route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Shortest propagation route between two drugs */
+        get: operations["listShortestRoutes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/relations/substitutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Structural candidates that do not use a given enzyme (not a prescription) */
+        get: operations["listSubstituteCandidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/relations/target-drugs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All drugs acting on one target gene */
+        get: operations["listTargetDrugs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/relations/transport-routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Transporter routes (efflux/uptake) for one drug */
+        get: operations["listTransportRoutes"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5157,6 +5327,16 @@ export type components = {
              */
             state: "active" | "unavailable" | "disabled";
         };
+        LoginInBrowserRequest: {
+            /** @description 人机验证令牌 */
+            captchaToken?: string;
+            /** @description 邮箱验证码（与密码二选一） */
+            code?: string;
+            /** @description 邮箱地址 */
+            email: string;
+            /** @description 密码（与验证码二选一） */
+            password?: string;
+        };
         LoginRequest: {
             /** @description 人机验证令牌 */
             captchaToken?: string;
@@ -5215,16 +5395,6 @@ export type components = {
             givenName?: string;
             /** @description Apple 登录返回的 identityToken (JWT) */
             identityToken: string;
-        };
-        LoginWithCookieRequest: {
-            /** @description 人机验证令牌 */
-            captchaToken?: string;
-            /** @description 邮箱验证码（与密码二选一） */
-            code?: string;
-            /** @description 邮箱地址 */
-            email: string;
-            /** @description 密码（与验证码二选一） */
-            password?: string;
         };
         LoginWithGoogleRequest: {
             /** @description OAuth 授权码 */
@@ -5648,6 +5818,7 @@ export type components = {
             context: "none" | "alcohol" | "caffeine";
             /** @description Supporting evidence. */
             evidence?: string;
+            mechanism?: components["schemas"]["MedicineRiskCheckRecordResponseResultFindingsMechanism"];
             /** @description Medicine the finding is about. */
             primaryMedicineName: string;
             /** @description LLM check only */
@@ -5666,6 +5837,29 @@ export type components = {
              * @enum {string}
              */
             type: "interaction" | "duplicateIngredient" | "allergy" | "foodInteraction" | "longTermUse" | "schedulingConflict" | "specialGroup";
+        };
+        /** @description Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup. */
+        MedicineRiskCheckRecordResponseResultFindingsMechanism: {
+            /** @description Present only when status is ok. */
+            mechanisms?: components["schemas"]["MedicineRiskCheckRecordResponseResultFindingsMechanismMechanisms"][];
+            /**
+             * @description Whether evidence was found, absent, or the graph could not answer.
+             * @enum {string}
+             */
+            status: "ok" | "notFound" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineRiskCheckRecordResponseResultFindingsMechanismMechanisms: {
+            /** @description Display name of that entity. */
+            entityName: string;
+            /** @description Gene symbol of the enzyme/target/transporter, e.g. CYP2C9. */
+            geneSymbol: string;
+            /**
+             * @description Pathway kind the evidence comes from.
+             * @enum {string}
+             */
+            kind: "enzyme" | "target" | "transporter";
+            /** @description What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON). */
+            relation: string;
         };
         MedicineRiskCheckRecordResponseResultRedFlags: {
             /** @description Medicine the flag is about. */
@@ -5753,6 +5947,7 @@ export type components = {
             context: "none" | "alcohol" | "caffeine";
             /** @description Supporting evidence. */
             evidence?: string;
+            mechanism?: components["schemas"]["MedicineRiskCheckRecordsResponseLlmResultFindingsMechanism"];
             /** @description Medicine the finding is about. */
             primaryMedicineName: string;
             /** @description LLM check only */
@@ -5771,6 +5966,29 @@ export type components = {
              * @enum {string}
              */
             type: "interaction" | "duplicateIngredient" | "allergy" | "foodInteraction" | "longTermUse" | "schedulingConflict" | "specialGroup";
+        };
+        /** @description Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup. */
+        MedicineRiskCheckRecordsResponseLlmResultFindingsMechanism: {
+            /** @description Present only when status is ok. */
+            mechanisms?: components["schemas"]["MedicineRiskCheckRecordsResponseLlmResultFindingsMechanismMechanisms"][];
+            /**
+             * @description Whether evidence was found, absent, or the graph could not answer.
+             * @enum {string}
+             */
+            status: "ok" | "notFound" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineRiskCheckRecordsResponseLlmResultFindingsMechanismMechanisms: {
+            /** @description Display name of that entity. */
+            entityName: string;
+            /** @description Gene symbol of the enzyme/target/transporter, e.g. CYP2C9. */
+            geneSymbol: string;
+            /**
+             * @description Pathway kind the evidence comes from.
+             * @enum {string}
+             */
+            kind: "enzyme" | "target" | "transporter";
+            /** @description What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON). */
+            relation: string;
         };
         MedicineRiskCheckRecordsResponseLlmResultRedFlags: {
             /** @description Medicine the flag is about. */
@@ -5854,6 +6072,7 @@ export type components = {
             context: "none" | "alcohol" | "caffeine";
             /** @description Supporting evidence. */
             evidence?: string;
+            mechanism?: components["schemas"]["MedicineRiskCheckRecordsResponseStaticResultFindingsMechanism"];
             /** @description Medicine the finding is about. */
             primaryMedicineName: string;
             /** @description LLM check only */
@@ -5872,6 +6091,29 @@ export type components = {
              * @enum {string}
              */
             type: "interaction" | "duplicateIngredient" | "allergy" | "foodInteraction" | "longTermUse" | "schedulingConflict" | "specialGroup";
+        };
+        /** @description Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup. */
+        MedicineRiskCheckRecordsResponseStaticResultFindingsMechanism: {
+            /** @description Present only when status is ok. */
+            mechanisms?: components["schemas"]["MedicineRiskCheckRecordsResponseStaticResultFindingsMechanismMechanisms"][];
+            /**
+             * @description Whether evidence was found, absent, or the graph could not answer.
+             * @enum {string}
+             */
+            status: "ok" | "notFound" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineRiskCheckRecordsResponseStaticResultFindingsMechanismMechanisms: {
+            /** @description Display name of that entity. */
+            entityName: string;
+            /** @description Gene symbol of the enzyme/target/transporter, e.g. CYP2C9. */
+            geneSymbol: string;
+            /**
+             * @description Pathway kind the evidence comes from.
+             * @enum {string}
+             */
+            kind: "enzyme" | "target" | "transporter";
+            /** @description What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON). */
+            relation: string;
         };
         MedicineRiskCheckRecordsResponseStaticResultRedFlags: {
             /** @description Medicine the flag is about. */
@@ -6186,6 +6428,18 @@ export type components = {
             /** @description Target date in YYYY-MM-DD format. Defaults to backend current day when omitted. */
             date?: string;
         };
+        RegisterInBrowserRequest: {
+            /** @description 人机验证令牌 */
+            captchaToken?: string;
+            /** @description 邮箱验证码 */
+            code: string;
+            /** @description 邮箱地址 */
+            email: string;
+            /** @description 昵称 */
+            nickname?: string;
+            /** @description 密码（至少8位，需通过强度校验） */
+            password: string;
+        };
         RegisterRequest: {
             /** @description 人机验证令牌 */
             captchaToken?: string;
@@ -6232,18 +6486,6 @@ export type components = {
             id: string;
             /** @description 昵称 */
             nickname: string | null;
-        };
-        RegisterWithCookieRequest: {
-            /** @description 人机验证令牌 */
-            captchaToken?: string;
-            /** @description 邮箱验证码 */
-            code: string;
-            /** @description 邮箱地址 */
-            email: string;
-            /** @description 昵称 */
-            nickname?: string;
-            /** @description 密码（至少8位，需通过强度校验） */
-            password: string;
         };
         ReminderDeliveryListResponse: {
             /** @description Delivery audit rows. */
@@ -6568,7 +6810,7 @@ export type components = {
              * @example drugbank
              * @enum {string}
              */
-            source: "cn" | "drugbank";
+            source: "drugbank" | "cn";
         };
         SendVerificationCodeRequest: {
             /** @description 邮箱地址 */
@@ -6588,25 +6830,19 @@ export type components = {
              */
             message: string;
         };
-        /** @description The active sessions of the current user. */
+        /** @description 当前用户仍在生效的会话。 */
         SessionListItem: components["schemas"]["SessionListItemEntry"][];
         SessionListItemEntry: {
-            /** @description Created at (ISO-8601) */
+            /** @description 创建时间 (ISO-8601) */
             createdAt: string;
-            /** @description Device name */
-            deviceName: string | null;
-            /** @description Device type */
-            deviceType: string | null;
-            /** @description Expires at (ISO-8601) */
+            /** @description 过期时间 (ISO-8601) */
             expiresAt: string;
-            /** @description Session id */
+            /** @description 会话 ID */
             id: string;
-            /** @description Whether this is the current session */
+            /** @description 是否为发起本次请求的会话（Bearer 客户端恒为 false） */
             isCurrent: boolean;
-            /** @description Last used at (ISO-8601) */
+            /** @description 最近使用时间 (ISO-8601) */
             lastUsedAt: string | null;
-            /** @description Platform */
-            platform: string | null;
         };
         SessionResponse: {
             /**
@@ -9310,7 +9546,174 @@ export interface operations {
             };
         };
     };
-    LocalController_getCaptcha: {
+    loginInBrowser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginInBrowserRequest"];
+            };
+        };
+        responses: {
+            /** @description Authenticated user. Tokens are set as HttpOnly cookies. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+            /** @description Login verification code expired or does not match */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Wrong credentials (unified code; account state is not revealed) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Too many failed login attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Authentication method unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    logoutInBrowser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Logged out; cookies cleared. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Access token invalid or expired (sent as a cookie) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    refreshInBrowser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rotated session; new tokens are set as HttpOnly cookies. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+            /** @description Refresh token missing, invalid, expired or already consumed */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    registerInBrowser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterInBrowserRequest"];
+            };
+        };
+        responses: {
+            /** @description Registered user. Tokens are set as HttpOnly cookies. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+            /** @description Verification code expired or does not match */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Authentication method unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    getCaptcha: {
         parameters: {
             query?: never;
             header?: never;
@@ -9326,100 +9729,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CaptchaResponse"];
-                };
-            };
-        };
-    };
-    listDevices: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The signed-in devices of the current user. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionListItem"];
-                };
-            };
-            /** @description Access token invalid or expired */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Authentication method unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    revokeDevice: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                sessionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Device revoked. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Access token invalid or expired */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Session belongs to another user */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Session not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Authentication method unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
                 };
             };
         };
@@ -10273,48 +10582,26 @@ export interface operations {
             };
         };
     };
-    loginWithCookie: {
+    listSessions: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginWithCookieRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Authenticated user. Tokens are set as HttpOnly cookies. */
+            /** @description The signed-in devices of the current user. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionResponse"];
+                    "application/json": components["schemas"]["SessionListItem"];
                 };
             };
-            /** @description Login verification code expired or does not match */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Wrong credentials (unified code; account state is not revealed) */
+            /** @description Access token invalid or expired */
             401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Too many failed login attempts */
-            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10333,23 +10620,25 @@ export interface operations {
             };
         };
     };
-    logoutWithCookie: {
+    revokeSession: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                sessionId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Logged out; cookies cleared. */
+            /** @description Device revoked. */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Access token invalid or expired (sent as a cookie) */
+            /** @description Access token invalid or expired */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -10358,28 +10647,8 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemDetailsDto"];
                 };
             };
-        };
-    };
-    refreshWithCookie: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Rotated session; new tokens are set as HttpOnly cookies. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionResponse"];
-                };
-            };
-            /** @description Refresh token missing, invalid, expired or already consumed */
-            401: {
+            /** @description Session belongs to another user */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10387,41 +10656,8 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemDetailsDto"];
                 };
             };
-        };
-    };
-    registerWithCookie: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterWithCookieRequest"];
-            };
-        };
-        responses: {
-            /** @description Registered user. Tokens are set as HttpOnly cookies. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionResponse"];
-                };
-            };
-            /** @description Verification code expired or does not match */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code) */
-            401: {
+            /** @description Session not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10770,6 +11006,31 @@ export interface operations {
             };
         };
     };
+    getMedicationOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Duplicate ingredients and source grouping for the current medicines. Empty aggregates when the user has no medicines — that is an answer, not an error. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Access token invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     recognize: {
         parameters: {
             query?: never;
@@ -10830,6 +11091,199 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Job status (pending, completed, or failed) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listDrugActions: {
+        parameters: {
+            query: {
+                /** @description DrugBank id */
+                drugbankId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Target action spectrum of the drug. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listCascadePaths: {
+        parameters: {
+            query: {
+                /** @description Starting DrugBank id */
+                drugbankId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cascade chains, or a status explaining why none. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listEnzymeDuels: {
+        parameters: {
+            query: {
+                /** @description Comma-separated DrugBank ids (2-10) */
+                drugbankIds: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Inducer/substrate pairs sharing one enzyme. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listMechanismPaths: {
+        parameters: {
+            query: {
+                /** @description Comma-separated DrugBank ids (2-10) */
+                drugbankIds: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mechanism paths, or a status explaining why none. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listSharedTargets: {
+        parameters: {
+            query: {
+                /** @description Comma-separated DrugBank ids (2-10) */
+                drugbankIds: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Shared targets, or a status explaining why none. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listShortestRoutes: {
+        parameters: {
+            query: {
+                /** @description Source DrugBank id */
+                fromDrugbankId: string;
+                /** @description Target DrugBank id */
+                toDrugbankId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Shortest routes, with nodes and edge types. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listSubstituteCandidates: {
+        parameters: {
+            query: {
+                /** @description DrugBank id being replaced */
+                drugbankId: string;
+                /** @description Enzyme to avoid, e.g. CYP2C9 */
+                enzymeGene: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Structural candidates with their shared target. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listTargetDrugs: {
+        parameters: {
+            query: {
+                /** @description Target gene symbol, e.g. CYP2C9 */
+                geneName: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Drugs acting on the target, with relation type. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listTransportRoutes: {
+        parameters: {
+            query: {
+                /** @description DrugBank id */
+                drugbankId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Transporter routes, with edge direction. */
             200: {
                 headers: {
                     [name: string]: unknown;
