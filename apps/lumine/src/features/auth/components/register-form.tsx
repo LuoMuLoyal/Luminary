@@ -234,8 +234,6 @@ egister 无条件 verify），
           {t('auth.action.signUp')}
         </form.SubmitButton>
       </form.AppForm>
-
-      <FieldDescription className='text-center'>{t('auth.footer.terms')}</FieldDescription>
     </form>
   );
 }
