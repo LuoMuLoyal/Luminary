@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import * as z from 'zod';
 
 import { Button } from '@/components/ui/button';
-import { FieldDescription, FieldGroup } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { useAppForm } from '@/lib/form';
 import { register as registerAccount, sendVerificationCode } from '@/features/auth/api/service';
 import { authErrorKey, captchaErrorKind } from '@/features/auth/api/errors';
@@ -159,41 +160,55 @@ egister 无条件 verify），
             />
           )}
         />
-
-        {/* 验证码与「发送」按钮放在一起：两者是同一个动作的两半，
-            分开两处会让用户以为按钮只管下半部分。 */}
+        {/* 验证码输入框与「发送」按钮并排：按钮是输入框旁边的独立控件，
+            不与输入框共用边框（内联进 `InputGroup` 会让它看起来是输入框的一部分）。 */}
         <form.AppField
           name='code'
-          children={(field) => (
-            <div className='space-y-2'>
-              <field.TextField
-                label={t('auth.field.code')}
-                inputMode='numeric'
-                autoComplete='one-time-code'
-                placeholder={t('auth.field.codePlaceholder')}
-              />
-              <Button
-                type='button'
-                variant='outline'
-                className='w-full'
-                disabled={cooldown > 0 || sending}
-                onClick={() => void handleSendCode()}
-              >
-                {cooldown > 0
-                  ? t('auth.action.resendIn', { seconds: cooldown })
-                  : sending
-                    ? t('auth.action.sending')
-                    : t('auth.action.sendCode')}
-              </Button>
-              {sendErrorKey !== null && (
-                <p role='alert' className='text-destructive text-sm'>
-                  {t(sendErrorKey)}
-                </p>
-              )}
-            </div>
-          )}
-        />
+          children={(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>{t('auth.field.code')}</FieldLabel>
+                <div className='flex items-center gap-2'>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    inputMode='numeric'
+                    autoComplete='one-time-code'
+                    placeholder={t('auth.field.codePlaceholder')}
+                    aria-invalid={isInvalid}
+                    aria-describedby={isInvalid ? `${field.name}-error` : undefined}
+                  />
+                  <Button
+                    type='button'
+                    variant='outline'
+                    className='shrink-0'
+                    disabled={cooldown > 0 || sending}
+                    onClick={() => void handleSendCode()}
+                  >
+                    {cooldown > 0
+                      ? t('auth.action.resendIn', { seconds: cooldown })
+                      : sending
+                        ? t('auth.action.sending')
+                        : t('auth.action.sendCode')}
+                  </Button>
+                </div>
+                {sendErrorKey !== null && (
+                  <p role='alert' className='text-destructive text-sm'>
+                    {t(sendErrorKey)}
+                  </p>
+                )}
+                {isInvalid && (
+                  <FieldError id={`${field.name}-error`} errors={field.state.meta.errors} />
+                )}
+              </Field>
+            );
+          }}
+        />
         <form.AppField
           name='password'
           children={(field) => (
