@@ -891,23 +891,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/verify-email": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Verify email */
-        post: operations["verifyEmail"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/environment/snapshot": {
         parameters: {
             query?: never;
@@ -3873,6 +3856,7 @@ export type components = {
              */
             range?: "last_7_days" | "last_30_days";
         };
+        /** @description Create a presigned file upload. */
         CreateUploadRequest: {
             /** @description MIME type */
             contentType: string;
@@ -8102,6 +8086,7 @@ export type components = {
             /** @description Scheduled local minute, 0-59. */
             scheduledMinute: number;
         };
+        /** @description Authenticated user settings. */
         UserSettingsResponse: {
             /** @description Allow AI-generated summaries and advice. */
             aiSummariesEnabled: boolean;
@@ -8129,17 +8114,6 @@ export type components = {
             healthProfile: boolean;
             /** @description Whether the assistant may read sleep records and summaries. */
             sleepRecords: boolean;
-        };
-        VerifyEmailRequest: {
-            /** @description Lucent 签发的邮件验证 token */
-            token: string;
-        };
-        VerifyEmailResponse: {
-            /**
-             * @description 邮箱是否已验证
-             * @example true
-             */
-            emailVerified: boolean;
         };
     };
     responses: never;
@@ -10658,57 +10632,6 @@ export interface operations {
             };
             /** @description Session not found */
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Authentication method unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    verifyEmail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyEmailRequest"];
-            };
-        };
-        responses: {
-            /** @description Whether the email is now verified. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VerifyEmailResponse"];
-                };
-            };
-            /** @description Verification token is invalid or has expired */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-            /** @description Authentication failed */
-            401: {
                 headers: {
                     [name: string]: unknown;
                 };
