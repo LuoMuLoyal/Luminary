@@ -9,7 +9,8 @@ export default defineConfig({
   },
   test: {
     // 只扫 src/：dist/ 里是构建产物，node_modules 里是三方代码。
-    include: ['src/**/*.test.ts'],
+    // 组件测试用 .test.tsx，两者都要收。
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     environment: 'node'
   }
 });

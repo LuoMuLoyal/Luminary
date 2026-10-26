@@ -1,0 +1,18 @@
+{
+  "placeholder": {
+    "title": "Not implemented yet",
+    "badge": "Planned"
+  },
+  "drug": {
+    "description": "Targets, mechanism and druggability for a single drug",
+    "capability": "Planned: target list with action type and the PubMed citation behind each finding (DrugBank targets, 10,009 covered), plus Lipinski rule-of-five from the JChem descriptors already in the database."
+  },
+  "combination": {
+    "description": "Shared targets and overlapping mechanism across a drug set",
+    "capability": "Planned: common targets, target-profile overlap, and the drug-drug interaction pairs with their mechanism. Depends on the target data behind single-drug analysis."
+  },
+  "structure": {
+    "description": "Similarity, scaffolds and chemical classification",
+    "capability": "Planned: Tanimoto similarity over Morgan fingerprints, Murcko scaffold clustering, and the kingdom-to-subclass classification tree. Fingerprints are not computed yet and must be generated from SMILES at import time."
+  }
+}

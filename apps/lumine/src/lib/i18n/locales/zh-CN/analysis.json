@@ -1,0 +1,18 @@
+{
+  "placeholder": {
+    "title": "尚未实现",
+    "badge": "规划中"
+  },
+  "drug": {
+    "description": "单个药物的靶点、作用机制与成药性",
+    "capability": "规划中：靶点列表（含作用方式，以及每条结论对应的 PubMed 引用；DrugBank targets 覆盖 10,009 个药），以及基于库内 JChem 描述符的 Lipinski 五规则评估。"
+  },
+  "combination": {
+    "description": "一组药物之间共享的靶点与重叠机制",
+    "capability": "规划中：共同靶点、靶点谱重叠度，以及药物相互作用对及其机制描述。依赖单药分析所用的靶点数据。"
+  },
+  "structure": {
+    "description": "相似性、骨架与化学分类",
+    "capability": "规划中：基于 Morgan 指纹的 Tanimoto 相似度、Murcko 骨架聚类，以及 kingdom 到 subclass 的分类树。指纹尚未计算，需要在导入期从 SMILES 生成。"
+  }
+}
