@@ -34,5 +34,8 @@
     "toggleDarkLight": "Toggle Dark/Light Mode",
     "setLight": "Set Light Theme",
     "setDark": "Set Dark Theme"
+  },
+  "a11y": {
+    "skipToContent": "Skip to content"
   }
 }

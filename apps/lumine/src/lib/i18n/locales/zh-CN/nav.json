@@ -34,5 +34,8 @@
     "toggleDarkLight": "切换深色/浅色模式",
     "setLight": "设为浅色主题",
     "setDark": "设为深色主题"
+  },
+  "a11y": {
+    "skipToContent": "跳到主要内容"
   }
 }

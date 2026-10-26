@@ -14,16 +14,28 @@
  *
  * ## 命名空间
  *
- * 按 feature 分：`auth` 与 `nav`。不要在 `common` 里堆一切——那样一个 feature
- * 的键名改动会牵扯全部页面。
+ * 按 feature 分：`auth`（默认）、`nav`、`analysis`。不要在 `common` 里堆一切——
+ * 那样一个 feature 的键名改动会牵扯全部页面。
+ *
+ * **键格式是 `<ns>:<path>`，不是 `<ns>.<path>`。** 写成点号时 i18next 不会报错，
+ * 而是把键原样返回，于是界面上直接显示 `nav.item.drugAnalysis`。导航侧用
+ * `useNavT()` 兜住这个坑。
  */
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import enAnalysis from './locales/en/analysis.json';
 import enAuth from './locales/en/auth.json';
 import enNav from './locales/en/nav.json';
+import zhCNAnalysis from './locales/zh-CN/analysis.json';
 import zhCNAuth from './locales/zh-CN/auth.json';
 import zhCNNan from './locales/zh-CN/nav.json';
+
+/** 导航文案的命名空间；键要用 `nav:path` 形式（见 `use-nav-t.ts`）。 */
+export const NAV_NAMESPACE = 'nav';
+
+/** 分析页文案的命名空间。 */
+export const ANALYSIS_NAMESPACE = 'analysis';
 
 /** 支持的语言。新增语言时这里与 `locales/<lang>/` 一起加。 */
 export const SUPPORTED_LANGUAGES = ['en', 'zh-CN'] as const;
@@ -79,10 +91,10 @@ void i18n.use(initReactI18next).init({
   fallbackLng: DEFAULT_LANGUAGE,
   supportedLngs: [...SUPPORTED_LANGUAGES],
   defaultNS: 'auth',
-  ns: ['auth', 'nav'],
+  ns: ['auth', 'nav', 'analysis'],
   resources: {
-    en: { auth: enAuth, nav: enNav },
-    'zh-CN': { auth: zhCNAuth, nav: zhCNNan }
+    en: { auth: enAuth, nav: enNav, analysis: enAnalysis },
+    'zh-CN': { auth: zhCNAuth, nav: zhCNNan, analysis: zhCNAnalysis }
   },
   interpolation: {
     // React 已经转义，i18next 再转一次会把引号变成实体。

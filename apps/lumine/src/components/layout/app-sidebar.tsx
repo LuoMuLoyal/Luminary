@@ -6,6 +6,7 @@ import { Link } from '@tanstack/react-router';
 import { AccountMenu } from '@/features/auth/components/account-menu';
 import { useLocation } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { useNavT } from '@/lib/i18n/use-nav-t';
 import * as React from 'react';
 import { Icons } from '../icons';
 import {
@@ -29,6 +30,7 @@ export default function AppSidebar() {
   const { isOpen } = useMediaQuery();
   const filteredGroups = useFilteredNavGroups(navGroups);
   const { t } = useTranslation();
+  const navT = useNavT();
 
   React.useEffect(() => {
     // Side effects based on sidebar state changes
@@ -40,7 +42,7 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size='lg' asChild>
-              <Link to='/dashboard/overview' aria-label={t('nav.item.dashboard')}>
+              <Link to='/dashboard/overview' aria-label={navT('item.dashboard')}>
                 <div className='bg-primary text-primary-foreground flex aspect-square size-8 shrink-0 items-center justify-center rounded-md'>
                   <Icons.logo className='size-4' />
                 </div>
@@ -56,11 +58,11 @@ export default function AppSidebar() {
       <SidebarContent className='overflow-x-hidden'>
         {filteredGroups.map((group) => (
           <SidebarGroup key={group.labelKey || 'ungrouped'} className='py-0'>
-            {group.labelKey && <SidebarGroupLabel>{t(group.labelKey)}</SidebarGroupLabel>}
+            {group.labelKey && <SidebarGroupLabel>{navT(group.labelKey)}</SidebarGroupLabel>}
             <SidebarMenu>
               {group.items.map((item) => {
                 const Icon = item.icon ? Icons[item.icon] : Icons.logo;
-                const title = t(item.titleKey);
+                const title = navT(item.titleKey);
                 return item?.items && item?.items?.length > 0 ? (
                   <Collapsible key={item.titleKey} defaultOpen={item.isActive} asChild>
                     <SidebarMenuItem>
@@ -80,8 +82,8 @@ export default function AppSidebar() {
                           {item.items?.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.titleKey}>
                               <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
-                                <Link to={subItem.url} aria-label={t(subItem.titleKey)}>
-                                  <span>{t(subItem.titleKey)}</span>
+                                <Link to={subItem.url} aria-label={navT(subItem.titleKey)}>
+                                  <span>{navT(subItem.titleKey)}</span>
                                 </Link>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>

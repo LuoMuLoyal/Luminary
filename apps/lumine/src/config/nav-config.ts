@@ -12,24 +12,24 @@ import { NavGroup } from '@/types';
  */
 export const navGroups: NavGroup[] = [
   {
-    labelKey: 'nav.group.analysis',
+    labelKey: 'group.analysis',
     items: [
       {
-        titleKey: 'nav.item.drugAnalysis',
+        titleKey: 'item.drugAnalysis',
         url: '/analysis/drug',
         icon: 'pill',
         isActive: false,
         items: []
       },
       {
-        titleKey: 'nav.item.combinationAnalysis',
+        titleKey: 'item.combinationAnalysis',
         url: '/analysis/combination',
         icon: 'network',
         isActive: false,
         items: []
       },
       {
-        titleKey: 'nav.item.structureAnalysis',
+        titleKey: 'item.structureAnalysis',
         url: '/analysis/structure',
         icon: 'molecule',
         isActive: false,
@@ -38,10 +38,10 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    labelKey: 'nav.group.overview',
+    labelKey: 'group.overview',
     items: [
       {
-        titleKey: 'nav.item.dashboard',
+        titleKey: 'item.dashboard',
         url: '/dashboard/overview',
         icon: 'dashboard',
         isActive: false,
@@ -49,7 +49,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        titleKey: 'nav.item.product',
+        titleKey: 'item.product',
         url: '/dashboard/product',
         icon: 'product',
         shortcut: ['p', 'p'],
@@ -57,7 +57,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        titleKey: 'nav.item.users',
+        titleKey: 'item.users',
         url: '/dashboard/users',
         icon: 'teams',
         shortcut: ['u', 'u'],
@@ -65,7 +65,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        titleKey: 'nav.item.kanban',
+        titleKey: 'item.kanban',
         url: '/dashboard/kanban',
         icon: 'kanban',
         shortcut: ['k', 'k'],
@@ -73,7 +73,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        titleKey: 'nav.item.chat',
+        titleKey: 'item.chat',
         url: '/dashboard/chat',
         icon: 'chat',
         shortcut: ['c', 'c'],
@@ -83,46 +83,46 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    labelKey: 'nav.group.elements',
+    labelKey: 'group.elements',
     items: [
       {
-        titleKey: 'nav.item.forms',
+        titleKey: 'item.forms',
         url: '#',
         icon: 'forms',
         isActive: true,
         items: [
           {
-            titleKey: 'nav.item.basicForm',
+            titleKey: 'item.basicForm',
             url: '/dashboard/forms/basic',
             icon: 'forms',
             shortcut: ['f', 'f']
           },
           {
-            titleKey: 'nav.item.multiStepForm',
+            titleKey: 'item.multiStepForm',
             url: '/dashboard/forms/multi-step',
             icon: 'forms'
           },
           {
-            titleKey: 'nav.item.sheetForm',
+            titleKey: 'item.sheetForm',
             url: '/dashboard/forms/sheet-form',
             icon: 'forms'
           },
           {
-            titleKey: 'nav.item.advancedPatterns',
+            titleKey: 'item.advancedPatterns',
             url: '/dashboard/forms/advanced',
             icon: 'forms'
           }
         ]
       },
       {
-        titleKey: 'nav.item.reactQuery',
+        titleKey: 'item.reactQuery',
         url: '/dashboard/react-query',
         icon: 'code',
         isActive: false,
         items: []
       },
       {
-        titleKey: 'nav.item.icons',
+        titleKey: 'item.icons',
         url: '/dashboard/elements/icons',
         icon: 'palette',
         isActive: false,
@@ -134,13 +134,13 @@ export const navGroups: NavGroup[] = [
     labelKey: '',
     items: [
       {
-        titleKey: 'nav.item.account',
+        titleKey: 'item.account',
         url: '#',
         icon: 'account',
         isActive: true,
         items: [
           {
-            titleKey: 'nav.item.notifications',
+            titleKey: 'item.notifications',
             url: '/dashboard/notifications',
             icon: 'notification',
             shortcut: ['n', 'n']
