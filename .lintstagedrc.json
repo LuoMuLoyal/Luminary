@@ -1,0 +1,13 @@
+{
+  "apps/lumine/**/*.{ts,tsx}": [
+    "pnpm --filter @luminary/lumine exec oxlint --fix",
+    "pnpm --filter @luminary/lumine exec oxfmt --write"
+  ],
+  "apps/lumine/**/*.{json,md,css}": ["pnpm --filter @luminary/lumine exec oxfmt --write"],
+  "apps/personal/**/*.{ts,tsx}": [
+    "pnpm --filter @luminary/personal exec oxlint --fix",
+    "pnpm --filter @luminary/personal exec oxfmt --write"
+  ],
+  "apps/personal/**/*.{json,md,css}": ["pnpm --filter @luminary/personal exec oxfmt --write"],
+  "apps/site/**/*.{ts,tsx}": ["pnpm --filter @luminary/site exec eslint --fix"]
+}

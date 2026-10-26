@@ -6,4 +6,6 @@ allowBuilds:
   '@sentry/cli': false
   esbuild: true
   sharp: false
+  # simple-git-hooks 的 postinstall 才会把 hook 写进 .git/hooks；不批准就静默不装。
+  simple-git-hooks: true
   unrs-resolver: false
