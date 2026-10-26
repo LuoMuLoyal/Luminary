@@ -1,0 +1,38 @@
+{
+  "group": {
+    "analysis": "Analysis",
+    "overview": "Overview",
+    "elements": "Elements"
+  },
+  "item": {
+    "drugAnalysis": "Drug Analysis",
+    "combinationAnalysis": "Combination Analysis",
+    "structureAnalysis": "Structure Analysis",
+    "dashboard": "Dashboard",
+    "product": "Product",
+    "users": "Users",
+    "kanban": "Kanban",
+    "chat": "Chat",
+    "forms": "Forms",
+    "basicForm": "Basic Form",
+    "multiStepForm": "Multi-Step Form",
+    "sheetForm": "Sheet & Dialog",
+    "advancedPatterns": "Advanced Patterns",
+    "reactQuery": "React Query",
+    "icons": "Icons",
+    "account": "Account",
+    "notifications": "Notifications"
+  },
+  "palette": {
+    "title": "Command Palette",
+    "description": "Search for a page or run a command",
+    "placeholder": "Type a command or search...",
+    "empty": "No results found.",
+    "navigation": "Navigation",
+    "theme": "Theme",
+    "switchTheme": "Switch Theme",
+    "toggleDarkLight": "Toggle Dark/Light Mode",
+    "setLight": "Set Light Theme",
+    "setDark": "Set Dark Theme"
+  }
+}

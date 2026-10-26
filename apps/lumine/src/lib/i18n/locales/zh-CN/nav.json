@@ -1,0 +1,38 @@
+{
+  "group": {
+    "analysis": "分析",
+    "overview": "概览",
+    "elements": "组件"
+  },
+  "item": {
+    "drugAnalysis": "单药分析",
+    "combinationAnalysis": "多药分析",
+    "structureAnalysis": "结构分析",
+    "dashboard": "仪表盘",
+    "product": "产品",
+    "users": "用户",
+    "kanban": "看板",
+    "chat": "对话",
+    "forms": "表单",
+    "basicForm": "基础表单",
+    "multiStepForm": "分步表单",
+    "sheetForm": "抽屉与对话框",
+    "advancedPatterns": "高级模式",
+    "reactQuery": "React Query",
+    "icons": "图标",
+    "account": "账号",
+    "notifications": "通知"
+  },
+  "palette": {
+    "title": "命令面板",
+    "description": "搜索页面或执行命令",
+    "placeholder": "输入命令或搜索…",
+    "empty": "没有匹配结果",
+    "navigation": "导航",
+    "theme": "主题",
+    "switchTheme": "切换主题",
+    "toggleDarkLight": "切换深色/浅色模式",
+    "setLight": "设为浅色主题",
+    "setDark": "设为深色主题"
+  }
+}

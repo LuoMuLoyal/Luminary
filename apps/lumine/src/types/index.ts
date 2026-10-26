@@ -9,7 +9,14 @@ export interface PermissionCheck {
 }
 
 export interface NavItem {
-  title: string;
+  /**
+   * i18n key，**不是显示文案**。渲染处用 `t(item.titleKey)` 取当前语言的标题。
+   *
+   * 命名成 `titleKey` 而不是 `title` 是刻意的：这个字段以前叫 `title`，
+   * 于是很容易顺手填一句英文进去（模板遗留的三组导航就是这样）。
+   * 改名后类型会逼着调用点去翻译，写死文案的写法不再自然。
+   */
+  titleKey: string;
   url: string;
   disabled?: boolean;
   external?: boolean;
@@ -23,7 +30,8 @@ export interface NavItem {
 }
 
 export interface NavGroup {
-  label: string;
+  /** i18n key，理由同 {@link NavItem.titleKey}。 */
+  labelKey: string;
   items: NavItem[];
 }
 

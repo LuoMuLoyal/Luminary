@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useRouter } from '@tanstack/react-router';
 import { useHotkey, useHotkeySequence, type HotkeySequence } from '@tanstack/react-hotkeys';
 import { useTheme } from 'next-themes';
+import { useTranslation } from 'react-i18next';
 import {
   CommandDialog,
   CommandEmpty,
@@ -65,6 +66,7 @@ type PaletteItem = {
 
 export default function CommandMenu({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const toggle = React.useCallback(() => setOpen((prev) => !prev), []);
 
@@ -103,17 +105,17 @@ export default function CommandMenu({ children }: { children: React.ReactNode })
     for (const group of filteredGroups) {
       for (const navItem of group.items) {
         if (navItem.url !== '#') {
-          push('Navigation', {
-            id: navItem.title,
-            name: navItem.title,
+          push(t('nav.palette.navigation'), {
+            id: navItem.titleKey,
+            name: t(navItem.titleKey),
             shortcut: navItem.shortcut,
             url: navItem.url
           });
         }
         for (const child of navItem.items ?? []) {
-          push(navItem.title, {
-            id: `${navItem.title}-${child.title}`,
-            name: child.title,
+          push(t(navItem.titleKey), {
+            id: `${navItem.titleKey}-${child.titleKey}`,
+            name: t(child.titleKey),
             shortcut: child.shortcut,
             url: child.url
           });
@@ -122,7 +124,7 @@ export default function CommandMenu({ children }: { children: React.ReactNode })
     }
 
     return [...map.entries()];
-  }, [filteredGroups]);
+  }, [filteredGroups, t]);
 
   const runAndClose = React.useCallback((action: () => void) => {
     setOpen(false);
@@ -169,12 +171,12 @@ export default function CommandMenu({ children }: { children: React.ReactNode })
       <CommandDialog
         open={open}
         onOpenChange={setOpen}
-        title='Command Palette'
-        description='Search for a page or run a command'
+        title={t('nav.palette.title')}
+        description={t('nav.palette.description')}
       >
-        <CommandInput placeholder='Type a command or search...' />
+        <CommandInput placeholder={t('nav.palette.placeholder')} />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandEmpty>{t('nav.palette.empty')}</CommandEmpty>
 
           {sections.map(([section, items]) => (
             <CommandGroup key={section} heading={section}>
@@ -189,29 +191,29 @@ export default function CommandMenu({ children }: { children: React.ReactNode })
             </CommandGroup>
           ))}
 
-          <CommandGroup heading='Theme'>
+          <CommandGroup heading={t('nav.palette.theme')}>
             <CommandItem value='Switch Theme' onSelect={() => runAndClose(cycleTheme)}>
-              <span>Switch Theme</span>
+              <span>{t('nav.palette.switchTheme')}</span>
               <CommandShortcut>TT</CommandShortcut>
             </CommandItem>
             <CommandItem
               value='Toggle Dark Light Mode'
               onSelect={() => runAndClose(toggleDarkLight)}
             >
-              <span>Toggle Dark/Light Mode</span>
+              <span>{t('nav.palette.toggleDarkLight')}</span>
               <CommandShortcut>DD</CommandShortcut>
             </CommandItem>
             <CommandItem
               value='Set Light Theme'
               onSelect={() => runAndClose(() => setTheme('light'))}
             >
-              <span>Set Light Theme</span>
+              <span>{t('nav.palette.setLight')}</span>
             </CommandItem>
             <CommandItem
               value='Set Dark Theme'
               onSelect={() => runAndClose(() => setTheme('dark'))}
             >
-              <span>Set Dark Theme</span>
+              <span>{t('nav.palette.setDark')}</span>
             </CommandItem>
           </CommandGroup>
         </CommandList>

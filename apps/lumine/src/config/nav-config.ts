@@ -5,27 +5,31 @@ import { NavGroup } from '@/types';
  *
  * This configuration is used for both the sidebar navigation and Cmd+K bar.
  * Items are organized into groups, each rendered with a SidebarGroupLabel.
+ *
+ * `labelKey` / `titleKey` hold **i18n keys**, never display text. The sidebar and
+ * the command palette resolve them with `t()` at render time, so switching
+ * language re-labels the whole navigation without rebuilding this list.
  */
 export const navGroups: NavGroup[] = [
   {
-    label: 'Analysis',
+    labelKey: 'nav.group.analysis',
     items: [
       {
-        title: 'Drug Analysis',
+        titleKey: 'nav.item.drugAnalysis',
         url: '/analysis/drug',
         icon: 'pill',
         isActive: false,
         items: []
       },
       {
-        title: 'Combination Analysis',
+        titleKey: 'nav.item.combinationAnalysis',
         url: '/analysis/combination',
         icon: 'network',
         isActive: false,
         items: []
       },
       {
-        title: 'Structure Analysis',
+        titleKey: 'nav.item.structureAnalysis',
         url: '/analysis/structure',
         icon: 'molecule',
         isActive: false,
@@ -34,10 +38,10 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: 'Overview',
+    labelKey: 'nav.group.overview',
     items: [
       {
-        title: 'Dashboard',
+        titleKey: 'nav.item.dashboard',
         url: '/dashboard/overview',
         icon: 'dashboard',
         isActive: false,
@@ -45,7 +49,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Product',
+        titleKey: 'nav.item.product',
         url: '/dashboard/product',
         icon: 'product',
         shortcut: ['p', 'p'],
@@ -53,7 +57,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Users',
+        titleKey: 'nav.item.users',
         url: '/dashboard/users',
         icon: 'teams',
         shortcut: ['u', 'u'],
@@ -61,7 +65,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Kanban',
+        titleKey: 'nav.item.kanban',
         url: '/dashboard/kanban',
         icon: 'kanban',
         shortcut: ['k', 'k'],
@@ -69,7 +73,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Chat',
+        titleKey: 'nav.item.chat',
         url: '/dashboard/chat',
         icon: 'chat',
         shortcut: ['c', 'c'],
@@ -79,46 +83,46 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: 'Elements',
+    labelKey: 'nav.group.elements',
     items: [
       {
-        title: 'Forms',
+        titleKey: 'nav.item.forms',
         url: '#',
         icon: 'forms',
         isActive: true,
         items: [
           {
-            title: 'Basic Form',
+            titleKey: 'nav.item.basicForm',
             url: '/dashboard/forms/basic',
             icon: 'forms',
             shortcut: ['f', 'f']
           },
           {
-            title: 'Multi-Step Form',
+            titleKey: 'nav.item.multiStepForm',
             url: '/dashboard/forms/multi-step',
             icon: 'forms'
           },
           {
-            title: 'Sheet & Dialog',
+            titleKey: 'nav.item.sheetForm',
             url: '/dashboard/forms/sheet-form',
             icon: 'forms'
           },
           {
-            title: 'Advanced Patterns',
+            titleKey: 'nav.item.advancedPatterns',
             url: '/dashboard/forms/advanced',
             icon: 'forms'
           }
         ]
       },
       {
-        title: 'React Query',
+        titleKey: 'nav.item.reactQuery',
         url: '/dashboard/react-query',
         icon: 'code',
         isActive: false,
         items: []
       },
       {
-        title: 'Icons',
+        titleKey: 'nav.item.icons',
         url: '/dashboard/elements/icons',
         icon: 'palette',
         isActive: false,
@@ -127,16 +131,16 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '',
+    labelKey: '',
     items: [
       {
-        title: 'Account',
+        titleKey: 'nav.item.account',
         url: '#',
         icon: 'account',
         isActive: true,
         items: [
           {
-            title: 'Notifications',
+            titleKey: 'nav.item.notifications',
             url: '/dashboard/notifications',
             icon: 'notification',
             shortcut: ['n', 'n']

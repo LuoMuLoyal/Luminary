@@ -14,14 +14,16 @@
  *
  * ## 命名空间
  *
- * 目前只有 `auth`。后续按 feature 增命名空间，不要在 `common` 里堆一切——
- * 那样一个 feature 的键名改动会牵扯全部页面。
+ * 按 feature 分：`auth` 与 `nav`。不要在 `common` 里堆一切——那样一个 feature
+ * 的键名改动会牵扯全部页面。
  */
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-import en from './locales/en/auth.json';
-import zhCN from './locales/zh-CN/auth.json';
+import enAuth from './locales/en/auth.json';
+import enNav from './locales/en/nav.json';
+import zhCNAuth from './locales/zh-CN/auth.json';
+import zhCNNan from './locales/zh-CN/nav.json';
 
 /** 支持的语言。新增语言时这里与 `locales/<lang>/` 一起加。 */
 export const SUPPORTED_LANGUAGES = ['en', 'zh-CN'] as const;
@@ -77,10 +79,10 @@ void i18n.use(initReactI18next).init({
   fallbackLng: DEFAULT_LANGUAGE,
   supportedLngs: [...SUPPORTED_LANGUAGES],
   defaultNS: 'auth',
-  ns: ['auth'],
+  ns: ['auth', 'nav'],
   resources: {
-    en: { auth: en },
-    'zh-CN': { auth: zhCN }
+    en: { auth: enAuth, nav: enNav },
+    'zh-CN': { auth: zhCNAuth, nav: zhCNNan }
   },
   interpolation: {
     // React 已经转义，i18next 再转一次会把引号变成实体。
