@@ -179,3 +179,29 @@ describe('会话状态', () => {
     expect(useSessionStore.getState().status).toBe('authenticated');
   });
 });
+
+describe('开发测试会话', () => {
+  it('开关关闭时照常走 /account，不注入用户', async () => {
+    vi.stubEnv('VITE_LUMINE_MOCK_SESSION', '');
+    mocked.getAccount.mockResolvedValue(ACCOUNT);
+
+    await useSessionStore.getState().bootstrap();
+
+    expect(mocked.getAccount).toHaveBeenCalled();
+    expect(useSessionStore.getState().user?.id).toBe('u1');
+    vi.unstubAllEnvs();
+  });
+
+  it('开关打开时直接注入用户，且不发任何请求', async () => {
+    vi.stubEnv('VITE_LUMINE_MOCK_SESSION', 'true');
+
+    await useSessionStore.getState().bootstrap();
+
+    // 不打请求是这个开关的意义：起不来 Lucent 时也能进工作台。
+    expect(mocked.getAccount).not.toHaveBeenCalled();
+    expect(mockedRefresh).not.toHaveBeenCalled();
+    expect(useSessionStore.getState().status).toBe('authenticated');
+    expect(useSessionStore.getState().user?.email).toBe('dev@lumine.local');
+    vi.unstubAllEnvs();
+  });
+});

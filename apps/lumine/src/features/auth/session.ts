@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import * as authApi from '@/features/auth/api/service';
+import { devMockSession } from '@/features/auth/dev-session';
 import { isSessionExpired } from '@/features/auth/api/errors';
 import { refreshSession } from '@/features/auth/api/session-refresh';
 import type {
@@ -90,6 +91,13 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   user: null,
 
   async bootstrap() {
+    // 开发测试会话（默认关闭，见 dev-session.ts）：完全不碰网络。
+    const mock = devMockSession();
+    if (mock) {
+      set({ status: 'authenticated', user: mock });
+      return;
+    }
+
     try {
       const user = toSessionUser(await authApi.getAccount());
       set({ status: 'authenticated', user });
