@@ -192,7 +192,8 @@ describe('开发测试会话', () => {
     vi.unstubAllEnvs();
   });
 
-  it('开关打开时直接注入用户，且不发任何请求', async () => {
+  it('开关打开且处于 dev 时直接注入用户，且不发任何请求', async () => {
+    vi.stubEnv('MODE', 'development');
     vi.stubEnv('VITE_LUMINE_MOCK_SESSION', 'true');
 
     await useSessionStore.getState().bootstrap();
@@ -202,6 +203,20 @@ describe('开发测试会话', () => {
     expect(mockedRefresh).not.toHaveBeenCalled();
     expect(useSessionStore.getState().status).toBe('authenticated');
     expect(useSessionStore.getState().user?.email).toBe('dev@lumine.local');
+    vi.unstubAllEnvs();
+  });
+
+  it('测试环境下即使开关打开也不注入——vitest 会读 .env.local', async () => {
+    // 回归防线：判据曾是 import.meta.env.DEV，而 DEV 在 vitest 里也是 true。
+    // 结果是本地把开关设成 true 后，整个会话测试套件被假用户带崩。
+    vi.stubEnv('MODE', 'test');
+    vi.stubEnv('VITE_LUMINE_MOCK_SESSION', 'true');
+    mocked.getAccount.mockResolvedValue(ACCOUNT);
+
+    await useSessionStore.getState().bootstrap();
+
+    expect(mocked.getAccount).toHaveBeenCalled();
+    expect(useSessionStore.getState().user?.id).toBe('u1');
     vi.unstubAllEnvs();
   });
 });

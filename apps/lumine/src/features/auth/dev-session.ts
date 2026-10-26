@@ -11,9 +11,17 @@
  * ## 为什么必须显式开启，且只在开发构建里生效
  *
  * **默认关闭**。没有 `VITE_LUMINE_MOCK_SESSION=true` 时，一切照旧走真实会话；
- * 就连开关为真，`import.meta.env.DEV` 为假的产物里也一律返回 `null`。
+ * 就连开关为真，非开发构建的产物里也一律返回 `null`。
  * 这层是硬约束而不是礼貌提示：一旦漏到生产构建，它会绕过全部鉴权，
  * 让任何人直接进工作台。
+ *
+ * ## 判据是 MODE，不是 DEV
+ *
+ * `import.meta.env.DEV` 在 **vitest 里也是 true**（DEV 只表示「不是 production」），
+ * 而 vitest 会加载 `.env.local`。用 DEV 判定会让本地开了这个开关之后，
+ * **单元测试里也注入假用户**——表现为一批与会话无关的测试突然失败。
+ * `MODE === 'development'` 只在 `vite dev` 成立（构建是 `production`，
+ * 测试是 `test`），所以拿它当判据。
  *
  * ## 它不模拟的
  *
@@ -40,10 +48,10 @@ const MOCK_USER: SessionUser = {
  * 开发测试会话是否启用。
  *
  * 两个条件缺一不可：构建期注入的 `VITE_LUMINE_MOCK_SESSION === 'true'`，以及
- * 当前是 `vite dev`（或测试）构建。调用方拿到 `null` 表示「没有测试会话」。
+ * 当前是 `vite dev`（MODE 为 `development`）。调用方拿到 `null` 表示没有测试会话。
  */
 export function devMockSession(): SessionUser | null {
-  if (!import.meta.env.DEV) return null;
+  if (import.meta.env.MODE !== 'development') return null;
   if (import.meta.env.VITE_LUMINE_MOCK_SESSION !== 'true') return null;
   return MOCK_USER;
 }
