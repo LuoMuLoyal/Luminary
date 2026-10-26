@@ -7,9 +7,17 @@ name: lumine
 # 本 app 有两套构建：TanStack Start 前端 + Rust 外壳，各自会失败。因此本 workflow
 # **分两个 job**，让失败定位到具体一侧，而不是混在一个日志里。
 #
-# 注意目录已从 pps/desktop 改名为 pps/lumine（commit 936c9d2）。本文件此前
+# 注意目录已从 apps/desktop 改名为 apps/lumine（commit 936c9d2）。本文件此前
 # 仍指向旧路径，导致 paths 过滤不命中、--filter @luminary/desktop 解析不到包、
 # working-directory 指向不存在的目录——桌面端的 CI 门禁事实上停了。
+#
+# ## 分支必须与另外两个 workflow 一致
+#
+# 日常开发推的是 `develop`。本文件曾只监听 `[main]`，于是 develop 上的每次 push
+# 都会出现一条**0 秒、0 个 job、没有日志**的失败记录（run 的 created_at 就是
+# updated_at）——那不是构建红了，是门禁根本没运行，而红色的 run 看起来和
+# 「代码坏了」一模一样。`codeql.yml` 与 `osv-scanner.yml` 一直是 `[main, develop]`，
+# 同一个仓库里不要有两种分支口径。
 #
 # ## 为什么只做 `cargo check` 而不做 `tauri build`
 #
@@ -31,7 +39,7 @@ name: lumine
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "apps/lumine/**"
       - "pnpm-lock.yaml"
@@ -40,7 +48,7 @@ on:
       - "turbo.jsonc"
       - ".github/workflows/lumine.yml"
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "apps/lumine/**"
       - "pnpm-lock.yaml"
