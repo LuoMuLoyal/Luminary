@@ -17,6 +17,9 @@ src/routeTree.gen.ts
 # Environment variables
 .env
 .env*.local
+# The template is meant to be committed; the root .gitignore's `.env*` would
+# otherwise swallow it. Re-including a file works from a nested .gitignore.
+!.env.example
 
 # IDEs and editors
 .vscode/*

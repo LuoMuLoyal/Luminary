@@ -88,8 +88,21 @@ src-tauri/         # Rust 外壳、图标、Tauri 配置
   成功后服务端不建会话，用户用新密码重新登录。不需要新增路由：重置的终点就是
   返回登录页，跳出去再回来会把已填的邮箱丢掉。
 
-配置见 `env.example.txt`。**Lucent 侧必须把本客户端的来源加进 `CORS_ORIGIN`**
-（开发期 `http://localhost:1420`），否则预检失败且 Lucent 日志里看不到请求。
+配置见 `.env.example`（复制成 `.env.local` 再改；该文件已被 gitignore）。
+**Lucent 侧必须把本客户端的来源加进 `CORS_ORIGIN`**（开发期 `http://localhost:1420`），
+否则预检失败且 Lucent 日志里看不到请求。
+
+### 不开后端看界面
+
+只想改样式、不起 Lucent 时，在 `.env.local` 里设：
+
+```dotenv
+VITE_LUMINE_MOCK_SESSION=true
+```
+
+会注入一个本地用户并跳过登录页。**只在开发构建里生效**——`dev-session.ts` 用
+`import.meta.env.DEV` 硬拦，生产产物一律忽略，所以它不会变成线上后门。它只伪造
+登录态、不冒充接口：页面请求照样拿 401 并把会话打回未登录。要看真实数据请起 Lucent。
 
 ## 人机验证
 
