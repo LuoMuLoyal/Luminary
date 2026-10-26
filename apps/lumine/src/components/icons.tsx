@@ -40,6 +40,7 @@ import {
   IconFileTypeDoc,
   IconFileTypeXls,
   IconFileZip,
+  IconFlask,
   IconFolder,
   IconGripVertical,
   IconHelpCircle,
@@ -56,10 +57,12 @@ import {
   IconMinus,
   IconMoon,
   IconMusic,
+  IconNetwork,
   IconPalette,
   IconPaperclip,
   IconPhone,
   IconPhoto,
+  IconPill,
   IconPizza,
   IconPlus,
   IconProps,
@@ -127,6 +130,12 @@ export const Icons = {
   dashboard: IconLayoutDashboard,
   kanban: IconLayoutKanban,
   panelLeft: IconLayoutSidebar,
+
+  // Analysis
+  // `IconMolecule` does not exist in @tabler/icons-react; IconFlask stands in for it.
+  pill: IconPill,
+  network: IconNetwork,
+  molecule: IconFlask,
 
   // User
   user: IconUser,

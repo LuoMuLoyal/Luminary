@@ -8,6 +8,32 @@ import { NavGroup } from '@/types';
  */
 export const navGroups: NavGroup[] = [
   {
+    label: 'Analysis',
+    items: [
+      {
+        title: 'Drug Analysis',
+        url: '/analysis/drug',
+        icon: 'pill',
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Combination Analysis',
+        url: '/analysis/combination',
+        icon: 'network',
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Structure Analysis',
+        url: '/analysis/structure',
+        icon: 'molecule',
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
     label: 'Overview',
     items: [
       {
