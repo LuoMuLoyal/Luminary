@@ -9,10 +9,14 @@ import { NavGroup } from '@/types';
  * `labelKey` / `titleKey` hold **i18n keys**, never display text. The sidebar and
  * the command palette resolve them with `t()` at render time, so switching
  * language re-labels the whole navigation without rebuilding this list.
+ *
+ * `url` on a group is the section root (`/analysis`). The group has no sidebar
+ * entry of its own, but breadcrumbs need it to label that path segment.
  */
 export const navGroups: NavGroup[] = [
   {
     labelKey: 'group.analysis',
+    url: '/analysis',
     items: [
       {
         titleKey: 'item.drugAnalysis',
@@ -39,6 +43,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     labelKey: 'group.overview',
+    url: '/dashboard',
     items: [
       {
         titleKey: 'item.dashboard',

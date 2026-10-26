@@ -32,6 +32,13 @@ export interface NavItem {
 export interface NavGroup {
   /** i18n key，理由同 {@link NavItem.titleKey}。 */
   labelKey: string;
+  /**
+   * 分组自身的路径（如 `/analysis`），用于面包屑解析分区根。
+   *
+   * 分组不是导航项、没有自己的入口，但它是路径的一级；不登记的话面包屑会
+   * 掉进「未登记路径」的兜底分支，显示英文的路径段。
+   */
+  url?: string;
   items: NavItem[];
 }
 
