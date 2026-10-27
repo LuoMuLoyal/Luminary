@@ -24,7 +24,6 @@ export const Route = createFileRoute('/dashboard/users')({
 function UsersPage() {
   return (
     <PageContainer
-      pageTitle='Users'
       pageDescription='Manage users (React Query + search params table pattern.)'
       infoContent={usersInfoContent}
       pageHeaderAction={<UserFormSheetTrigger />}

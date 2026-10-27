@@ -15,7 +15,6 @@ export default function IconsViewPage() {
 
   return (
     <PageContainer
-      pageTitle='Icons'
       pageHeaderAction={
         <a
           href={TABLER_ICONS_URL}

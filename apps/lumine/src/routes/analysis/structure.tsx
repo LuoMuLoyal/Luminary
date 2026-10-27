@@ -9,7 +9,6 @@ export const Route = createFileRoute('/analysis/structure')({
   }),
   component: () => (
     <PlaceholderPage
-      titleKey='item.structureAnalysis'
       descriptionKey='structure.description'
       capabilityKey='structure.capability'
       icon='molecule'

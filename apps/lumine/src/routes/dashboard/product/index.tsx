@@ -25,7 +25,6 @@ export const Route = createFileRoute('/dashboard/product/')({
 function ProductPage() {
   return (
     <PageContainer
-      pageTitle='Products'
       pageDescription='Manage products (React Query + search params table pattern.)'
       infoContent={productInfoContent}
       pageHeaderAction={

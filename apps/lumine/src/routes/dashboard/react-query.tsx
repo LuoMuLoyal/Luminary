@@ -17,7 +17,6 @@ export const Route = createFileRoute('/dashboard/react-query')({
 function ReactQueryPage() {
   return (
     <PageContainer
-      pageTitle='React Query'
       pageDescription='Server prefetch + client hydration + suspense query pattern.'
       infoContent={reactQueryInfoContent}
     >

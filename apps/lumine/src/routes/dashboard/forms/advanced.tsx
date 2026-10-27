@@ -5,10 +5,7 @@ import AdvancedFormPatterns from '@/features/forms/components/advanced-form-patt
 export const Route = createFileRoute('/dashboard/forms/advanced')({
   head: () => ({ meta: [{ title: 'Dashboard: Advanced Form Patterns' }] }),
   component: () => (
-    <PageContainer
-      pageTitle='Advanced Form Patterns'
-      pageDescription='Linked fields, async validation, dynamic rows, nested objects, cross-field validation, and form-level errors.'
-    >
+    <PageContainer pageDescription='Linked fields, async validation, dynamic rows, nested objects, cross-field validation, and form-level errors.'>
       <AdvancedFormPatterns />
     </PageContainer>
   )
