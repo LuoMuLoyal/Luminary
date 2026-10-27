@@ -4,8 +4,7 @@
     "badge": "规划中"
   },
   "drug": {
-    "description": "单个药物的靶点、作用机制与成药性",
-    "capability": "规划中：靶点列表（含作用方式，以及每条结论对应的 PubMed 引用；DrugBank targets 覆盖 10,009 个药），以及基于库内 JChem 描述符的 Lipinski 五规则评估。"
+    "description": "单个药物的靶点、作用机制与成药性"
   },
   "combination": {
     "description": "一组药物之间共享的靶点与重叠机制",
@@ -14,5 +13,82 @@
   "structure": {
     "description": "相似性、骨架与化学分类",
     "capability": "规划中：基于 Morgan 指纹的 Tanimoto 相似度、Murcko 骨架聚类，以及 kingdom 到 subclass 的分类树。指纹尚未计算，需要在导入期从 SMILES 生成。"
+  },
+  "search": {
+    "label": "搜索药品",
+    "placeholder": "名称、CAS 号或 UNII",
+    "showingOf": "显示 {{shown}} / {{total}} 条",
+    "goToPage": "前往第 {{page}} 页",
+    "empty": "未找到药品",
+    "emptyHint": "检查拼写，或换个名称试试。",
+    "error": "搜索失败"
+  },
+  "source": {
+    "label": "数据源",
+    "drugbank": "DrugBank",
+    "cn": "中文说明书"
+  },
+  "empty": {
+    "title": "选择药品",
+    "body": "从左侧列表中选择一个以查看详情。"
+  },
+  "state": {
+    "loading": "加载中",
+    "retry": "重试",
+    "unavailable": "无法加载该药品",
+    "networkTitle": "无法连接服务器",
+    "networkBody": "检查网络后重试。"
+  },
+  "section": {
+    "identity": "身份",
+    "text": "描述与机制",
+    "targets": "靶点与作用",
+    "pk": "药代动力学",
+    "crossRefs": "交叉引用"
+  },
+  "counts": {
+    "targets": "靶点",
+    "synonyms": "同义词",
+    "crossRefs": "外部引用"
+  },
+  "identity": {
+    "source": "数据源",
+    "subtitle": "副标题",
+    "drugType": "药物类型",
+    "state": "物理状态",
+    "formula": "分子式",
+    "molecularWeight": "分子量",
+    "exactMass": "单同位素质量",
+    "iupacName": "IUPAC 名",
+    "inchiKey": "InChIKey",
+    "smiles": "SMILES"
+  },
+  "pk": {
+    "absorption": "吸收",
+    "halfLife": "半衰期",
+    "proteinBinding": "蛋白结合率",
+    "metabolism": "代谢",
+    "clearance": "清除率",
+    "volumeOfDistribution": "表观分布容积",
+    "routeOfElimination": "消除途径"
+  },
+  "text": {
+    "description": "描述",
+    "indication": "适应症",
+    "mechanismOfAction": "作用机制",
+    "pharmacodynamics": "药效学",
+    "toxicity": "毒性"
+  },
+  "targets": {
+    "name": "靶点",
+    "gene": "基因",
+    "kind": "关系",
+    "actions": "作用方式",
+    "species": "物种",
+    "uniprot": "UniProt"
+  },
+  "crossRefs": {
+    "resource": "资源",
+    "identifier": "标识符"
   }
 }

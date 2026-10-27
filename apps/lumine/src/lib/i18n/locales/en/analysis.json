@@ -4,8 +4,7 @@
     "badge": "Planned"
   },
   "drug": {
-    "description": "Targets, mechanism and druggability for a single drug",
-    "capability": "Planned: target list with action type and the PubMed citation behind each finding (DrugBank targets, 10,009 covered), plus Lipinski rule-of-five from the JChem descriptors already in the database."
+    "description": "Targets, mechanism and druggability for a single drug"
   },
   "combination": {
     "description": "Shared targets and overlapping mechanism across a drug set",
@@ -14,5 +13,82 @@
   "structure": {
     "description": "Similarity, scaffolds and chemical classification",
     "capability": "Planned: Tanimoto similarity over Morgan fingerprints, Murcko scaffold clustering, and the kingdom-to-subclass classification tree. Fingerprints are not computed yet and must be generated from SMILES at import time."
+  },
+  "search": {
+    "label": "Search medicines",
+    "placeholder": "Name, CAS number or UNII",
+    "showingOf": "{{shown}} of {{total}}",
+    "goToPage": "Go to page {{page}}",
+    "empty": "No medicines found",
+    "emptyHint": "Check the spelling, or try another name.",
+    "error": "Could not search"
+  },
+  "source": {
+    "label": "Source",
+    "drugbank": "DrugBank",
+    "cn": "Chinese leaflets"
+  },
+  "empty": {
+    "title": "Select a medicine",
+    "body": "Pick one from the list to see its details."
+  },
+  "state": {
+    "loading": "Loading",
+    "retry": "Try Again",
+    "unavailable": "Could not load this medicine",
+    "networkTitle": "Cannot reach the server",
+    "networkBody": "Check your connection and try again."
+  },
+  "section": {
+    "identity": "Identity",
+    "text": "Description and mechanism",
+    "targets": "Targets and mechanism",
+    "pk": "Pharmacokinetics",
+    "crossRefs": "Cross references"
+  },
+  "counts": {
+    "targets": "Targets",
+    "synonyms": "Synonyms",
+    "crossRefs": "External references"
+  },
+  "identity": {
+    "source": "Source",
+    "subtitle": "Subtitle",
+    "drugType": "Drug type",
+    "state": "Physical state",
+    "formula": "Molecular formula",
+    "molecularWeight": "Molecular weight",
+    "exactMass": "Monoisotopic mass",
+    "iupacName": "IUPAC name",
+    "inchiKey": "InChIKey",
+    "smiles": "SMILES"
+  },
+  "pk": {
+    "absorption": "Absorption",
+    "halfLife": "Half life",
+    "proteinBinding": "Protein binding",
+    "metabolism": "Metabolism",
+    "clearance": "Clearance",
+    "volumeOfDistribution": "Volume of distribution",
+    "routeOfElimination": "Route of elimination"
+  },
+  "text": {
+    "description": "Description",
+    "indication": "Indication",
+    "mechanismOfAction": "Mechanism of action",
+    "pharmacodynamics": "Pharmacodynamics",
+    "toxicity": "Toxicity"
+  },
+  "targets": {
+    "name": "Target",
+    "gene": "Gene",
+    "kind": "Relation",
+    "actions": "Actions",
+    "species": "Species",
+    "uniprot": "UniProt"
+  },
+  "crossRefs": {
+    "resource": "Resource",
+    "identifier": "Identifier"
   }
 }
