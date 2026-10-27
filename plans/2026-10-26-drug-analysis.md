@@ -31,42 +31,108 @@
 
 ---
 
-## 二、事实核查：`PRODUCT.md` 与代码现状的三处不一致
+## 二、事实核查：`PRODUCT.md` 与代码/数据现状的六处不一致
 
-这三处必须先修，否则计划会建在错误前提上。
+这几处必须先修，否则计划会建在错误前提上。全部为**实测**结论（dev 库 `lucent-postgres-dev:15432`、源文件 `DrugDataBase/`）。
 
-### 2.1 A2「靶点自带 PubMed 引用」——**当前不成立**
+### 2.0 【最严重】`drugbank_drug_targets` 与 `drugbank_targets` 是**空表**
 
-`PRODUCT.md` §五 A2 称：
+实测各表行数：
 
-> **这是 Lumine 最值得做的能力**：数据自带引用，天然满足可溯源要求。
+| 表 | 行数 |
+| --- | --- |
+| `drugbank_drugs` | **100** |
+| `drugbank_targets` | **0** |
+| `drugbank_drug_targets` | **0** |
+| `drugbank_structures` | **0** |
+| `drugbank_target_sequences` | **0** |
+| `drugbank_drug_sequences` | 0 |
+| `drugbank_patents` | 409 |
+| `drugbank_properties` | 578 |
+| `drugbank_fingerprints` | 8 |
 
-查证结果：
+`drug_source_imports` 台账里**根本没有 `drugbank_targets_*` / `drugbank_structures` 的导入记录**（只有 drugs / patents / properties / fingerprints / pathways / reactions / snp / calculated / experimental 九项）。
 
-- `MedicineDetailResponse.targets` 的字段是 `actions` / `geneName` / `knownAction` / `name` / `pdbIds` / `relationKind` / `species` / `uniprotId` / `uniprotTitle`——**没有引用字段**。
-- `DrugbankDrugTarget` 模型（`Lucent/prisma/models/medicine-knowledge.prisma`）的列只有 `drugbankId` / `targetId` / `relationKind` / `actions` / `knownAction`，**没有引用列**。
+三个后果：
 
-结论：**A2 的头号卖点目前无法兑现**。原始 DrugBank XML 的 target 条目里带 `<references>`（PubMed ID），是导入器没有落库。
+1. **A1 成药性评估也不成立。** `structure` 字段来自 `drugbank_structures`，该表为空 → `MedicineDetailResponse.structure` 全为 `null` → 雷达图与 Lipinski 逐项**全部无数据**。我在上一版计划里写"A1 全部已在库，零后端改动"，那是**错的**：字段定义在，但**没有数据**。
+2. **A2 靶点分析不成立**，原因不只是缺引用列，而是整张关系表为空。
+3. **`drugbank_drugs` 只有 100 行**（DB00001–DB00108），是一次 `--limit` 开发抽样；`DB00176` 等常用验证对象**不在库里**。所以"用 DB00176 验收"在当前数据下会直接查不到。
 
-这不是"以后再说"的小事：A2 被 `PRODUCT.md` §六列为**落地顺序第 1 项**，理由是"数据自带引用，最能体现可溯源"。要么补引用，要么把 A2 的理由改掉。
+**源数据是齐的**，这是好消息：
+
+- `DrugDataBase/raw/drugbank/all.csv`（1.2 MB，5,096 行目标）——`drugbank_targets-all` 的源
+- `DrugDataBase/raw/drugbank/full database.xml`（**1.82 GB**）——含 `<targets>` / `<enzymes>` / `<carriers>` / `<transporters>` 与每个 target 下的 `<references><articles><article><pubmed-id>` + `<citation>`
+- 导入器与解析器**都已存在**：`parsers/drugbank_targets.py`、`drugbank_structures.py`、`drugbank_target_sequences.py`、`drugbank_drug_sequences.py`、`drugbank_external_links.py`
+
+**结论：这不是"写代码"的问题，是"没跑导入"的问题。**
+
+> **2026-10-27 修订（重要）**：本节初稿写「不需要改 Lucent 代码」。**Lucent 侧代码已经改完了**：
+> 6 个 JsonB 列（`groups` / `classification` / `synonyms` / `products` /
+> `drug_interactions` / `external_identifiers`）已提升为 9 张关系表并删除原列，
+> `DrugbankMedicinesService` 改为 include 关系表，解析器与导入命令均已就绪并抽样验证
+> （synonyms 705 · drug_interactions 51,606 · products 2,509 · external_identifiers 912 ·
+> dosages 3,666 · packagers 424 · groups 202 · manufacturers 96 · classifications 98）。
+>
+> **对 Lumine 的含义**：
+> 1. API 契约**没有变**（端点与响应字段形状不变），`pnpm contract` 无需重跑。
+> 2. §3.4 的 ego 图可直接查 `drugbank_drug_interactions`——但 **49,794 / 51,606 条（96%）
+>    的对方药物不在 `drugbank_drugs` 里**，该表**故意不建指向药物的外键**。
+>    前端必须处理「对方药物不在本库」：只显示名称，不做跳转。
+> 3. 详情接口的 `drugInteractions` **只返回前 200 条**（详情页是摘要，完整关系图走 ego 端点）。
+> 4. 仍未做的只有**全量导入**——这是第 0 步的全部内容。
+
+### 2.1 A2 的「PubMed 引用」——源里有，未落库
+
+实测 `full database.xml` 中 `DB00176` 的 `<targets>` 块：单个 target 下带 12 个 `<references>`，每个含 `pubmed-id` 与完整 `citation` 文本（例：`<pubmed-id>11304754</pubmed-id>` + Kakiuchi 等 2001 年那篇）。
+
+而 `DrugbankDrugTarget` 模型的列只有 `drugbankId` / `targetId` / `relationKind` / `actions` / `knownAction`——**没有引用列**。
+
+所以 `PRODUCT.md` §五 A2 的「数据自带引用，天然满足可溯源要求」需要区分两件事：
+
+- **源数据里确实有引用** → 该卖点成立，只是没落库；
+- **当前 API 返回不了** → 需要新增列 + 导入器扩展（`applyXmlTargetActions` 已在解析同一份 XML，扩展它即可）。
 
 ### 2.2 §十 的 `/api/v1/workbench/*` 前缀不存在
 
-`PRODUCT.md` §十约定：
-
-> | 路径前缀 | `/api/v1/workbench/*`，与手机端的 `/api/v1/medicines/*` 分开 |
-
 查证：Lucent 下**没有 workbench 模块**，只有 `medicines.controller.ts` 与 `medicines-relations.controller.ts`，路径都是 `/api/v1/medicines/*`。
 
-### 2.3 §三 说 patents / properties / fingerprints「未导入」，但模型已存在
+### 2.3 §三 说 patents / properties / fingerprints「未导入」——实际已导入
 
-`Lucent/prisma/models/medicine-knowledge.prisma` 里已有：
+实测：`drugbank_patents` 409 行、`drugbank_properties` 578 行、`drugbank_fingerprints` 8 行，台账里都有 completed 记录。**§三 这一条是过期描述**。
 
-- `DrugbankPatent`（含 `expiresOn` 索引）
-- `DrugbankProperty`（含 `valueText` + `valueNum` 双列，正是 §三「实验属性」要求的设计）
-- `DrugbankFingerprint`（2048-bit Morgan，hex 存储）
+但它们**都不在 `MedicineDetailResponse` 里暴露**，所以"能查到"与"能通过 API 拿到"是两件事。
 
-且这三个模型都**不在** `MedicineDetailResponse` 里暴露。所以 §三 的措辞（"需补导入"）与实际的"schema 已就绪、只差 API 暴露 + 数据确认"有偏差。
+### 2.4 【关键】"按名查询"端点已存在，但搜索能力有明确缺口
+
+讨论中提到的"Lucent 提供一个按药品名查药品信息的端点"**已经存在**：`GET /api/v1/medicines?q=&source=&page=&pageSize=`。
+
+实测其实现（`infrastructure/persistence/drugbank.ts` 的 `buildWhere`）：
+
+```ts
+OR: [
+  { searchText: { contains: q, mode: 'insensitive' } },
+  { OR: [ { name: ... }, { casNumber: ... }, { unii: ... } ] },
+]
+```
+
+即：`name` / `casNumber` / `unii` / `searchText` 四个字段 `contains` 模糊匹配。
+
+**`searchText` 不是"只有药名"**——导入时拼进了 `synonyms[:20]`（`parsers/drugbank_drugs.py` 的 `build_search_text([name, primary_id, cas_number, unii] + secondary_ids + groups + synonyms[:20])`）。实测 `DB00003` 的 `search_text` 里确实含第 3 个同义词 `Dornasa alfa`。
+
+所以缺口是这三条，而不是"同义词搜不到"：
+
+| 缺口 | 说明 |
+| --- | --- |
+| **中文名搜不到英文药** | `source=cn` 与 `source=drugbank` 是两套表不混排。**且按 ADR-0008 这属于"不做"**（不维护 CN↔DrugBank 映射），跨源由 LLM 工具链处理，见 §6.5 |
+| **同义词有截断且不可区分** | 只取前 20 条（实测仅 4 个药超过 20 条，影响小）；且命中后无法知道命中的是哪个同义词、无法按语言 / INN 标记筛选 |
+| **无相关度排序** | `orderBy: name asc`；数据量 19,842 下暂不影响 |
+
+**因此本计划不新增"按名查询"端点**（避免两份语义重叠的搜索），搜索增强按 §6.5 建表解决。
+
+### 2.5 `PRODUCT.md` §2.5「已入库情况」整体过期
+
+§2.5 的表格称「DrugBank 主表 ✅ 已导入」「成药性全套字段 ✅ 已导入」「靶点关系 ✅ 已导入」，实测只有主表（且仅 100 行抽样）成立，靶点与结构均为空表。该表需要按 §2.0 的实测数据重写。
 
 ---
 
@@ -119,14 +185,14 @@
 | 区块 | 数据来源（当前 API） | 备注 |
 | --- | --- | --- |
 | 身份 | `MedicineDetailResponse.detail`：`description` / `drugType` / `groups` / `state` / `synonyms` / `atcCodes` / `categories`；`structure.formula` / `molecularWeight` / `exactMass` / `iupacName` / `inchiKey` | `groups` 四态用 `Badge` 分色（approved / withdrawn / investigational / vet_approved） |
-| 成药性 A1 | `structure`：`ruleOfFive` / `acceptorCount` / `donorCount` / `rotatableBondCount` / `logP` / `alogpsLogP` / `polarSurfaceArea` / `polarizability` / `ringCount` / `ghoseFilter` / `veberRule` / `bioavailability` / `mddrLikeRule` | **全部已在库，零后端改动** |
-| 靶点 A2 | `detail.targets[]` | 引用列**需后端补**（见 §六） |
+| 成药性 A1 | `structure`：`ruleOfFive` / `acceptorCount` / `donorCount` / `rotatableBondCount` / `logP` / `alogpsLogP` / `polarSurfaceArea` / `polarizability` / `ringCount` / `ghoseFilter` / `veberRule` / `bioavailability` / `mddrLikeRule` | ⚠️ **字段齐全但 `drugbank_structures` 是空表**，需先跑导入（§6.0） |
+| 靶点 A2 | `detail.targets[]` | ⚠️ `drugbank_drug_targets` 为空表；引用列还需 §6.2 |
 | 药代 A12 | `halfLife` / `proteinBinding` / `absorption` / `metabolism` / `clearance` / `volumeOfDistribution` / `routeOfElimination` | **原文文本**，不做数值解析；如需比较，解析结果必须标注"解析所得"（§五 A12） |
 | 毒性 A13 | `toxicity` | 覆盖率 13%，必须显著提示"多为动物实验，不能外推到人" |
 | 交叉引用 A5 | `externalIdentifiers[]` / `externalLinks[]` | 纯链接，实现最简 |
-| 关系网络 A6 | **需新增端点**，见 §3.4 | 数据已在 `drugbank_drug_targets`，不必依赖 Semantica |
+| 关系网络 A6 | **需新增端点**，见 §3.4 | 数据已在 `drugbank_drug_targets`（当前为空，需第 0 步导入）；**替代方案**：`drugbank_drug_interactions` 已有 51,606 条，可先做「相互作用网络」而非「靶点网络」 |
 | 成药性雷达图 A1 | 由 `structure` 的 6 个描述符归一化后绘制 | 归一化区间需固定，见 §3.5 |
-| 中文对照 | 暂不接 | 需 `cn_en_mapping` 落地到 API，见 §六.5 |
+| 中文对照 | **不做** | 违反 ADR-0008（不维护 CN↔DrugBank 映射），见 §6.6 |
 
 ### 3.4 可视化：三处，各有明确职责
 
@@ -214,7 +280,7 @@ Lipinski 四规则（MW / logP / HBD / HBA）加 TPSA、可旋转键共 6 维，
 
 | 组件 | 职责 | 关键约束 |
 | --- | --- | --- |
-| `DrugSearchPanel` | 搜索框 + 结果列表 + 最近打开 | 输入防抖；中文名可搜（`q` 已支持） |
+| `DrugSearchPanel` | 搜索框 + 结果列表 + 最近打开 | 输入防抖；`source` 可切 `drugbank` / `cn`（两源各自内部检索，**不跨源**，见 §6.5） |
 | `DrugIdentityHeader` | 名称、ID、状态徽章、分子式 | ID 与数值用 `font-mono` |
 | `DruggabilityPanel` | Lipinski 四规则逐行 + 违规数 | **规则是启发式，界面必须写明只做初筛**（§五 A1） |
 | `MetricRow` | 标签 + 等宽数值 + 单位 + 可选来源 | 数值列右对齐；缺失显示"—"并在 tooltip 说明 |
@@ -283,13 +349,78 @@ taste-skill §3.C 要求"one family per project"并统一 `strokeWidth`。现状
 
 ---
 
-## 六、后端改动清单（Lucent）
+## 六、后端与数据改动清单（Lucent）
 
-按依赖顺序。
+按依赖顺序。**§6.0 与 §6.1 已完成**（2026-10-27），剩余只有全量导入。
+
+### 6.0 【已完成】DrugBank 导入链路就绪
+
+实测 dev 库缺 5 张表的数据（§2.0），原因是**从未执行导入**，不是导入失败。解析器与导入 spec 都已存在。
+
+> **2026-10-27 已完成**：
+> - 新增 9 张关系表（`drugbank_drug_interactions` / `products` / `synonyms` / `dosages` /
+>   `external_identifiers` / `classifications` / `groups` / `manufacturers` / `packagers`），
+>   取代 6 个 JsonB 列（原列已删除）。详见 `Lucent/src/modules/medicines/README.md`。
+> - 新增 8 个解析器 + 9 个导入命令，并加入 `import:medicine:all` 顺序。
+> - `DrugbankMedicinesService` 改为 include 关系表。
+> - `drugbank_drug_targets` 补 `import_run_id`（此前无法追溯批次）。
+
+仍需执行的导入：
+
+```bash
+cd Lucent
+# PyArrow 不在 PATH 的 python 里，需指定解释器（见 docs/howto/run-medicine-import.md）
+$env:PYTHON_BIN = "D:\25080\Documents\VSCodeProject\Lumos\DrugDataBase\.venv312\Scripts\python.exe"
+
+# 0. 药物主表必须先全量（否则下面所有带 drugbank_id 外键的表都会报外键冲突）
+pnpm import:medicine:all -- --command drugbank-drugs
+# 目标关系（A2 与 ego 图的基础）
+pnpm import:medicine:all -- --command drugbank-targets-all
+pnpm import:medicine:all -- --command drugbank-targets-active
+# 成药性（A1 的基础）
+pnpm import:medicine:all -- --command drugbank-structures
+# 序列
+pnpm import:medicine:all -- --command drugbank-target-proteins
+pnpm import:medicine:all -- --command drugbank-target-genes
+pnpm import:medicine:all -- --command drugbank-drug-sequences
+# 已建好的 9 张关系表（重跑到全量）
+pnpm import:medicine:all -- --command drugbank-groups
+pnpm import:medicine:all -- --command drugbank-classification
+pnpm import:medicine:all -- --command drugbank-synonyms
+pnpm import:medicine:all -- --command drugbank-external-identifiers
+pnpm import:medicine:all -- --command drugbank-dosages
+pnpm import:medicine:all -- --command drugbank-manufacturers
+pnpm import:medicine:all -- --command drugbank-packagers
+pnpm import:medicine:all -- --command drugbank-products
+pnpm import:medicine:all -- --command drugbank-drug-interactions
+```
+
+**顺序不能颠倒**：`drugbank_drugs` 是全表外键的父表。实测 `drugbank-targets-all --limit 100`
+在抽样库上直接报 `violates foreign key constraint "drugbank_drug_targets_drugbank_id_fkey"`，
+因为 `all.csv` 里的靶点引用的药不全在那 100 个抽样里。
+
+`drugbank-structures` 的源是 `raw/drugbank/structures.sdf`（62.9 MB，14,622 个分子），不是 parquet。
+
+**验收**：
+
+```sql
+SELECT count(*) FROM drugbank_targets;        -- 期望数千
+SELECT count(*) FROM drugbank_drug_targets;   -- 期望上万
+SELECT count(*) FROM drugbank_structures;     -- 期望 ~14,622
+SELECT count(*) FROM drugbank_drugs;          -- 期望 19,842
+SELECT count(*) FROM drugbank_drugs WHERE drugbank_id='DB00176';  -- 期望 1
+SELECT count(*) FROM drugbank_drug_interactions;  -- 期望 ~291 万
+```
+
+**这一步之前，A1 与 A2 都无法验收**——不是"功能没做"，是"没有数据可显示"。
+
+> **一个当前可用的折中**：`drugbank_drug_interactions` 已有 51,606 条抽样数据，
+> 且不依赖 `drugbank_drug_targets`。所以**「相互作用网络」可以先于「靶点网络」做**，
+> 不必等全量导入。
 
 ### 6.1 关系网络端点 —— 可视化的前置条件
 
-新增 `GET /api/v1/medicines/{id}/network?depth=1|2`，数据源 `drugbank_drug_targets`（**不经过 Semantica**，理由见 §3.4）。
+新增 `GET /api/v1/medicines/{id}/network?depth=1|2`，数据源 `drugbank_drug_targets`（**不经过 Semantica**，理由见 §3.4）。**依赖 §6.0**。
 
 要点：
 
@@ -298,19 +429,24 @@ taste-skill §3.C 要求"one family per project"并统一 `strokeWidth`。现状
 - 方向语义按 `PRODUCT.md` §7 处理：`INTERACTS_WITH` 双向，其余有向。
 - 端点鉴权姿态显式化（Lucent 的 `arch:check` 要求方法或类级 `@Public()` / `@UseGuards`）。
 - 按 Lucent 的 e2e 约定补「跨用户访问 → 404」与 limit 上限用例。
+- **必须处理"关系为空的药"**：`drugbank_drug_targets` 为空时返回空图而不是 500。
 
 **验收**：`DB00176` 返回约 30 个邻居节点，`P08684`（CYP3A4）的边 `relationKind` 为 `enzyme`。
 
 ### 6.2 靶点引用落库 —— **A2 的前置条件**
 
-1. `DrugbankDrugTarget` 增列：`references Json?`（存 `[{ pubmedId, citation }]`），或按 §三 的判断标准建独立表（若要按 PubMed ID 反查，就该建表）。
-2. 导入器 `Lucent/scripts/import/medicine/import-medicine-knowledge.ts` 解析 DrugBank XML 的 target `<references>` 并落库（该文件已有 XML 富化流程 `applyXmlTargetActions`，在其上扩展）。
+实测源 XML 里每个 target 带 `<references>`（`DB00176` 的 12 条，含 `pubmed-id` + 完整 `citation`）。落库方案：
+
+1. `DrugbankDrugTarget` 增列 `references Json?`（存 `[{ pubmedId, citation }]`）。
+   - 若将来要"按 PubMed ID 反查哪些药"→ 按 `PRODUCT.md` §三 的判断标准应**建独立表**；若只做"取一个药、看它的引用"→ JsonB 足够。**当前需求是后者**，故先用 JsonB，并在列注释里写明这个判断依据。
+2. 扩展导入器的 XML 富化流程 `applyXmlTargetActions`（`import-medicine-knowledge.ts`，它已在解析同一份 XML 的 targets/enzymes/carriers/transporters）——**在同一遍解析里顺带取 `<references>`**，不要再开第二遍扫描（1.82 GB XML，每遍都是分钟级）。
 3. `MedicineDetailResponseTargets` 增 `references` 字段。
 4. `pnpm export:openapi` → `apps/lumine` 跑 `pnpm contract`。
 
-**验收**：`DB00176`（Fluvoxamine）的靶点返回非空引用。
+**验收**：`DB00176` 的靶点返回非空引用，且 PubMed ID 可点（链到 `pubmed.ncbi.nlm.nih.gov/<id>`）。
 
-### 6.3 暴露已建表的 patents / properties / fingerprints
+### 6.3 暴露已建表但未暴露的数据
+
 
 三个模型已存在但 API 未暴露。**建议按需加子资源，而不是塞进 `getDetail`**：
 
@@ -329,11 +465,76 @@ GET /api/v1/medicines/{id}/properties
 
 若坚持分前缀，则需明确回答：两个前缀下哪些端点重复、由谁保证不漂移。这属于 ADR 级别的问题，建议先按"单前缀 + 按需子资源"落地。
 
-### 6.5 中文对照（延后）
+### 6.5 搜索能力：建同义词表；**中文映射坚决不做**
 
-`PRODUCT.md` §九把"中英对照"列为最值得做的中文能力，依据是 `cn_en_mapping.parquet`。这需要：`cn_en_mapping` 落库 → 加 `GET /api/v1/medicines/{id}/cn` → 单药页并排展示。
+#### 【硬约束】ADR-0008 否决了 CN↔DrugBank 映射
 
-**本计划不包含**，因为它是独立的导入工作，且不阻塞 A1/A2 上线。
+我上一版提议「落库 `cn_en_mapping` 让中文名搜到英文药」——**这直接违反 Lucent 的 [ADR-0008](../../Lucent/docs/reference/adr/0008-no-cn-drugbank-medicine-mapping.md)（status: accepted，2026-07-15）**，该 ADR 的决定是：
+
+> **不维护 CN↔DrugBank 药品映射关系。**
+
+理由（ADR 原文）：医药映射容错率为零、无专业药学人力审核、两源独立更新维护成本不可控，而 LLM 已能通过工具链自主跨源检索（`resolve_drugbank_entity` / `get_drugbank_detail` 等）。且该 ADR 明确写了「**不可逆**：此决策不会逆转」。
+
+而 `PRODUCT.md` §九 把「中英对照」列为**最值得做的第一项**，理由是「已有 `cn_en_mapping.parquet`」——**这是与 ADR-0008 的直接冲突**，且 PRODUCT.md 全文没有提到 ADR-0008。`cn_en_mapping.parquet` 只是 `DrugDataBase/derived/` 下的离线产物，`CN_EN_MAPPING_PLAN.md` 自己写的是「只产出数据，不接入 Lucent」，Lucent 的 `src/` 里**没有任何引用**（实测）。
+
+**结论**：本计划**不做**中文映射落库，也不做"中文名搜英文药"。§6.6 的"中英对照展示"同样取消。这一条要作为 `PRODUCT.md` §九 的修订项（见 §七），由你决定是改 PRODUCT.md 还是推翻 ADR——**那是产品决策，不是实现细节**。
+
+#### 同义词：建表（与 ADR-0008 无关，属于 DrugBank 内部）
+
+先纠正我上一版写错的事实：`synonyms` **不是"未参与查询"**。导入时已把 `synonyms[:20]` 拼进了 `drugbank_drugs.search_text`（`parsers/drugbank_drugs.py` 的 `build_search_text([name, primary_id, cas_number, unii] + secondary_ids + groups + synonyms[:20])`）。实测 `DB00003` 的 `search_text` 里含第 3 个同义词 `Dornasa alfa`。
+
+真正的问题是这两条：
+
+| 问题 | 现状 | 建表后 |
+| --- | --- | --- |
+| 截断 | 只取前 20 条（实测仅 4 个药超过 20 条，影响小） | 全量 |
+| 不可区分 | 命中后不知道命中的是哪个同义词，也无法按语言 / INN 标记筛选 | 可按 `language` / `is_inn` / `kind` 过滤与展示 |
+
+按 `PRODUCT.md` §三 的标准（要按字段过滤/排序/范围查询 → 建表），**建 `drugbank_synonyms`**：
+
+```
+drugbank_synonyms
+  drugbank_id  text  → drugbank_drugs.drugbank_id
+  synonym      text
+  language     text?     -- DrugBank 的 language 属性
+  is_inn       boolean   -- 国际非专利名标记
+  kind         text?     -- 来源分组（如 synonyms / international-brands）
+  @@unique([drugbank_id, synonym])
+  @@index([synonym])     -- 或 pg_trgm GIN，见下
+```
+
+索引：`pg_trgm` 1.6 **已安装**（实测 `installed_version = 1.6`），用 `gin (synonym gin_trgm_ops)` 支持子串匹配。`search_text` 里的拼接**保留**（它是模糊召回的主力），同义词表用于**精确命中与展示**——两者不冲突。
+
+#### 中文检索：只做 CN 侧内部，不跨源
+
+- `source=cn` 的搜索（`cn_medicine_products`）是**中文侧内部**检索，与 ADR-0008 无关，可以正常增强。
+- 实测 `pg_available_extensions` 里有 **`zhparser` 2.4（installed）**，但 `pg_ts_config` 里**只有内置的 24 种语言配置，没有中文配置**。所以：
+
+| 方案 | 取舍 |
+| --- | --- |
+| **A. `pg_trgm` 子串匹配**（先做） | 中文药名多为 2–6 字，子串召回够用；无需分词，实现最轻 |
+| B. `zhparser` 全文检索 | 可按词根匹配、`ts_rank` 排序；但要维护 `tsvector` 列与触发器，且**需确认 `zhparser` 在部署镜像中存在**（dev 装了不等于生产装了） |
+
+#### 端点侧
+
+不新增"按名查询"端点（已存在，§2.4）。改动是**扩大 `buildWhere` 的 `OR`**：
+
+```ts
+OR: [
+  { name: { contains: q, mode: 'insensitive' } },
+  { casNumber: ... }, { unii: ... },
+  { searchText: ... },                                    // 保留：模糊召回
+  { synonyms: { some: { synonym: { contains: q, mode: 'insensitive' } } } },  // 新表
+]
+```
+
+**注意这里没有中文映射项**——按 ADR-0008，跨源由 LLM 工具链处理，不在搜索层做。
+
+### 6.6 【取消】中英对照展示
+
+原计划要"按 DrugBank ID 并列展示中文说明书与英文机制"，**依据是 `cn_en_mapping.parquet`，而它违反 ADR-0008**（§6.5 已说明）。故取消。
+
+若将来仍要做，必须先解决 ADR-0008 与 `PRODUCT.md` §九 的冲突（改 ADR 或改产品定义），**不能靠"数据文件已经存在"绕过一个 accepted 的 ADR**。
 
 ---
 
@@ -341,30 +542,44 @@ GET /api/v1/medicines/{id}/properties
 
 | 位置 | 现状 | 改为 |
 | --- | --- | --- |
-| §五 A2 | "数据自带引用，天然满足可溯源要求" | 改为："引用需补导入（见 §三）；导入前本项的可溯源优势不成立" |
-| §三 | patents / properties / fingerprints 标"未导入" | 改为："schema 已就绪（`DrugbankPatent` / `DrugbankProperty` / `DrugbankFingerprint`），缺 API 暴露；实际数据状态需查库确认" |
+| **§2.5「已入库情况」** | 称靶点关系 / 成药性 / 结构「✅ 已导入」 | **整表按 §2.0 实测重写**：靶点、结构、序列均为空表；主表仅 100 行抽样 |
+| **§三** | 判断"哪些数据需补导入" | 补一句：目标关系与结构**导入器已存在但未跑**，属于"执行"而非"开发" |
+| §五 A2 | "数据自带引用，天然满足可溯源要求" | 改为："源 XML 自带引用（每 target 含 `<references>`），但**未落库**；需 §6.2 补列与导入后才成立" |
+| §三 | patents / properties / fingerprints 标"未导入" | 改为"**已导入**（实测 409 / 578 / 8 行），缺 API 暴露" |
 | §十 | 路径前缀 `/api/v1/workbench/*` | 改为 `/api/v1/medicines/*` + 按需子资源，并说明理由 |
-| §六 | 落地顺序第 1 项 A2 | 保持，但注明**依赖 §6.2 的引用导入**；若不导入，第 1 项应改为 A1 |
+| §十 | 未提现有搜索端点能力 | 补：`GET /api/v1/medicines?q=` 匹配 name/CAS/UNII/searchText（含前 20 个同义词），**不含中文名**；同义词增强见 §6.5（建 `drugbank_synonyms` + `pg_trgm` GIN） |
+| **§九** | 把「中英对照」「中文检索（用中文名搜到 DrugBank 条目）」列为最值得做的能力，依据 `cn_en_mapping.parquet` | **与 ADR-0008 直接冲突**（该 ADR 已 accepted 且声明不可逆）。必须二选一：改 §九 删除这两项，或推翻 ADR-0008。**这是产品决策，需你裁定**，不能靠"数据文件已存在"绕过 |
+| §三 | 未提同义词的承载结构 | 按 §三 自己的标准补：同义词需按语言 / INN 筛选且不截断 → **建表 `drugbank_synonyms`** |
+| §六 | 落地顺序第 1 项 A2 | 注明**依赖 §6.0 导入 + §6.2 引用落库**；在 §6.0 完成前，第 1、2 项都无法验收 |
+| §五 A1 | 称"数据最齐、实现最简单，不需要补导入" | 补：**字段齐但表为空**，需先跑 `drugbank-structures` 导入 |
 | §五 A6 | 把图谱可视化定位为独立页（`/graph`） | 补一句：**单药页内嵌 ego 图**（数据源 `drugbank_drug_targets`，非 Semantica）；`/graph` 仍是全局探索页 |
 | §七 | "已有导出样例 166 节点 / 400 边" | 补：该样例**本身派生自 `drugbank_drug_targets`**（每条边 `prov` 可证），因此单药 ego 图无需依赖 Semantica sidecar |
-| §十二 未决问题 | — | 增三条：① 图标库收敛（tabler vs lucide）；② 结构式渲染方案（`smiles-drawer` vs RDKit.js）；③ 单药 ego 图 `depth=2` 的节点上限与截断提示 |
+| §十二 未决问题 | — | 增五条：① 图标库收敛（tabler vs lucide）；② 结构式渲染方案（`smiles-drawer` vs RDKit.js）；③ 单药 ego 图 `depth=2` 的节点上限与截断提示；④ 中文检索用 `pg_trgm` 还是 `zhparser`（后者已装但未建 text search config）；⑤ `zhparser` 是否在部署镜像中存在 |
 
 ---
 
 ## 八、实施顺序与验收
 
+**第 0 项是一切的前提**：它不改代码，但不做则 A1、A2 都无数据可显示。
+
 | 序 | 事项 | 依赖 | 验收 |
 | --- | --- | --- | --- |
-| 1 | 路由与 URL 状态（`?id=`）、搜索面板、未选中空态 | 无 | `/analysis/drug` 可搜到药并跳转，刷新后保持选中 |
-| 2 | 身份区 + 成药性面板（A1）+ 雷达图 | 1 | `DB00176` 显示 Lipinski 逐项与违规数；**零后端改动** |
-| 3 | PK（A12）+ 毒性（A13）+ 覆盖率提示 | 2 | 缺失字段显示"无数据"而非空白 |
-| 4 | 交叉引用（A5） | 2 | 外链可点，`target="_blank"` + `rel="noreferrer"` |
-| 5 | 靶点表（A2，引用列先隐藏） | 2 | 靶点/作用/关系/物种正确 |
+| **0** | **补齐 DrugBank 导入（§6.0）** | 无 | `drugbank_drug_targets` / `drugbank_structures` / `drugbank_targets` 非空；`DB00176` 可查 |
+| 1 | 路由与 URL 状态（`?id=`）、搜索面板、未选中空态 | 0（需有药可搜） | `/analysis/drug` 可搜到药并跳转，刷新后保持选中 |
+| 2 | 身份区 + 成药性面板（A1）+ 雷达图 | 0, 1 | `DB00176` 显示 Lipinski 逐项与违规数 |
+| 3 | PK（A12）+ 毒性（A13）+ 覆盖率提示 | 1 | 缺失字段显示"无数据"而非空白 |
+| 4 | 交叉引用（A5） | 1 | 外链可点，`target="_blank"` + `rel="noreferrer"` |
+| 5 | 靶点表（A2，引用列先隐藏） | 0, 1 | 靶点/作用/关系/物种正确 |
 | 6 | **后端 §6.1 网络端点** + 前端 ego 图 | 5 | `DB00176` 出图；图例写明仅含事实边；方向正确 |
-| 7 | **后端 §6.2 引用导入** | 独立 | 靶点表出现引用列 |
-| 8 | 骨架屏、错误态、键盘可达、暗色核对 | 2–6 | 断网有错误态；Tab 能走完表格与图节点；两种主题下都检查过（taste-skill §8.D） |
+| 7 | **后端 §6.2 引用落库** | 5 | 靶点表出现引用列，PubMed 链接可点 |
+| **8** | **后端 §6.5 建表 `drugbank_synonyms`**（含 `pg_trgm` GIN） | 0 | 同义词不截断、可按语言 / INN 区分；命中后能显示命中的是哪个同义词 |
+| 9 | 骨架屏、错误态、键盘可达、暗色核对 | 2–6 | 断网有错误态；Tab 能走完表格与图节点；两种主题下都检查过（taste-skill §8.D） |
 
-**第 1–5 项不依赖任何后端改动即可上线**（除引用列）；第 6 项依赖一个新增端点，但该端点只读现有表，不依赖任何导入工作。
+**第 0 项是硬前提**：不改代码，但不做则 A1、A2 都无数据可显示。`PRODUCT.md` §六 原有的"补导入不是开工前置条件"在**当前 dev 库状态下不成立**——靶点与结构是空表。
+
+**第 8 项是后端改动，不是"可选优化"**。上一版我把它写成"零 schema 改动的拼接列方案"，那是错的：同义词需要按语言 / INN 筛选且不截断，中文映射需要排除未复核项，两者都符合 `PRODUCT.md` §三 的建表标准。
+
+若要在导入完成前先推进前端，可让第 1–3 项针对**已有数据的字段**（`drugbank_drugs` 的 100 行里：`mechanismOfAction` 100/100、`halfLife` 78/100、`toxicity` 51/100、`casNumber` 96/100）先做，把 A1 与靶点相关部分留到导入之后。
 
 ---
 
@@ -375,10 +590,12 @@ GET /api/v1/medicines/{id}/properties
 | 分子对接 | SDF 是 2D 坐标（§2.2） |
 | 用药建议 | 属于 Luminous 领域且涉合规（§八.3） |
 | 毒性/疗效预测 | 无药效参数，无法验证（§八.1） |
+| **新增"按药品名查询"端点** | 已存在 `GET /api/v1/medicines?q=`（§2.4），重复造会得到两份语义重叠的搜索。**但增强该端点的 `where` 与建表是计划内工作（§6.5）** |
 | **把可视化做成"好看的装饰"** | 三处图各有职责（§3.4）；不放无信息量的图 |
 | **按数据集动态算雷达图区间** | 同一药两次访问形状不同，比没有图更糟（§3.5） |
 | **用进度条表示覆盖率** | taste-skill §9.F 禁止填充背景轨道的对比条；改用真实数字 |
 | **在本页接 Semantica** | 同一份数据在 `drugbank_drug_targets` 就有，且 Semantica 默认关闭；多一个 sidecar 依赖换不到新信息 |
+| **CN↔DrugBank 中文映射（含"中文名搜英文药"与"中英对照"）** | **ADR-0008 已 accepted 且声明不可逆**；跨源检索由 LLM 工具链处理。`PRODUCT.md` §九 与此冲突，需先裁定（§6.5 / §七） |
 | 把 PK 文本字段解析成数值后直接比较 | §五 A12 要求标注"解析所得"；本计划只展示原文 |
 | 卡片式分块布局 | taste-skill §4.4：`VISUAL_DENSITY > 7` 时禁止通用卡片容器 |
 | 用图表展示单药的时间序列 | 本页数据里没有时间序列；recharts 只用于雷达图 |
