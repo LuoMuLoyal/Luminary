@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { THIRTY_MINUTES } from '@/lib/time';
 import { getCaptchaConfig } from './service';
 
 /**
@@ -28,6 +29,6 @@ export const captchaQueryOptions = () =>
     queryKey: authKeys.captcha(),
     queryFn: getCaptchaConfig,
     // 部署配置在一次会话内不变；失败重试只会拖慢登录页的首次渲染。
-    staleTime: 30 * 60 * 1000,
+    staleTime: THIRTY_MINUTES,
     retry: 1
   });

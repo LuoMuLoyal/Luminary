@@ -1,5 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 
+import { ONE_MINUTE } from './time';
+
 // Singleton query client for use in mutation options and other non-component code.
 // In TanStack Start, the primary queryClient lives in the router context,
 // but mutations defined outside components need a reference too.
@@ -10,7 +12,7 @@ export function getQueryClient() {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
-          staleTime: 60 * 1000
+          staleTime: ONE_MINUTE
         }
       }
     });
