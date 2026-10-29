@@ -31,6 +31,23 @@
 | Scorecard | `.github/workflows/scorecard.yml` | 仓库配置与流程的反模式 | 否 |
 | Dependabot | `.github/dependabot.yml` | npm / cargo / github-actions 三套月度分组更新 | 开 PR |
 
+### Node 版本：单一事实源是 `.node-version`
+
+三个构建 workflow 都读 `.node-version`（`actions/setup-node` 的 `node-version-file`），
+不在 YAML 里硬编码 patch。曾经三处各自写死 `node-version: 24`，与根 `engines`
+漂移时无任何检查会报出来——把它收敛成一个文件后，改版本只改一处。
+
+`site.yml` 因为把仓库 checkout 到 `Luminary/` 子目录，路径要写成
+`Luminary/.node-version`，理由与同一文件里的 `package_json_file` 相同。
+
+`.node-version` 已加入三个 workflow 的 `paths` 过滤器：只改版本号时也必须真正跑一次
+构建，否则「升级了 Node 但 CI 没验证过」会静默发生。
+
+当前基线为 Node 26（Active LTS，代号 Lithium）。注意 `engines` 是**下限约束**，
+不是 pin——本仓的构建产物是静态文件，没有运行时 Node，所以 `engines` 只用来挡住
+本地用旧版本跑 `pnpm install`。
+
+
 三者查的层面不同，不可互相替代：
 
 - **CodeQL** 查源码里的数据流漏洞。两种语言都用 `build-mode: none`：Rust 提取器

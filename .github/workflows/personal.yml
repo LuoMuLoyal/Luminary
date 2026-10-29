@@ -26,6 +26,7 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "package.json"
+      - ".node-version"
       - "turbo.jsonc"
       - ".github/workflows/personal.yml"
   pull_request:
@@ -35,6 +36,7 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "package.json"
+      - ".node-version"
       - "turbo.jsonc"
       - ".github/workflows/personal.yml"
   workflow_dispatch:
@@ -55,7 +57,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 

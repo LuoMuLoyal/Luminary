@@ -52,6 +52,8 @@ devluo.com/luminous/docs/    → site（文档站）
 
 ## 常用命令
 
+需要 Node 26（版本以 `.node-version` 为准，CI 三个 workflow 都读它）与 pnpm 12。
+
 在仓库根执行（由 Turbo 编排）：
 
 ```bash
@@ -110,7 +112,7 @@ pnpm --filter @luminary/lumine tauri:build   # 打包安装包
 
 ## 约定
 
-- **只写 TypeScript，不产出 JavaScript**。同步脚本由 Node 24 原生执行
+- **只写 TypeScript，不产出 JavaScript**。同步脚本由 Node 26 原生执行
   （类型剥离），无构建步骤、无打包产物。
 - 提交信息：`type(scope): 中文摘要`，单行。
 - 不修改 `Lucent` 仓库结构；本仓库的改动不涉及后端。

@@ -1,7 +1,7 @@
 /**
  * 两仓文档 → Luminary 内容目录同步。
  *
- * 运行：`pnpm sync:docs`（Node 24 原生类型剥离，无需 tsx/ts-node）
+ * 运行：`pnpm sync:docs`（Node 26 原生类型剥离，无需 tsx/ts-node）
  *
  * 依据 `plans/2026-09-28-docs-site-rollout-plan.md` §四 的映射表，把 `Luminous` 与
  * `Lucent` 的 docs/ 与 plans/ **全量**搬进 `content/docs/{luminous,lucent}/`。
