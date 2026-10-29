@@ -80,19 +80,22 @@ jobs:
 
       - name: Checkout Luminous
         uses: actions/checkout@v5
+        # step 级关键字，必须与 `uses` 同级；写在 `with:` 下会被当作 action 的输入，
+        # 而 actions/checkout 没有这个输入，于是整条 workflow 直接报
+        # Invalid action input 'continue-on-error' 而无法启动。
+        continue-on-error: true
         with:
           repository: ${{ github.repository_owner }}/Luminous
           path: Luminous
           token: ${{ secrets.DOCS_PAT || github.token }}
-          continue-on-error: true
 
       - name: Checkout Lucent
         uses: actions/checkout@v5
+        continue-on-error: true
         with:
           repository: ${{ github.repository_owner }}/Lucent
           path: Lucent
           token: ${{ secrets.DOCS_PAT || github.token }}
-          continue-on-error: true
 
       # 兄弟仓库拉不到时**不要**直接失败在这里，而是让 verify:docs 给出
       # 「找不到 Luminous/Lucent 工作区」的明确诊断——那条信息比 checkout 的报错更可操作。
