@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import { FIVE_MINUTES, TEN_MINUTES } from '@/lib/time';
-import { getMedicineDetail, searchMedicines } from '../infrastructure/service';
+import { getMedicineDetail, getMedicineNetwork, searchMedicines } from '../infrastructure/service';
 import type { MedicineSource } from '../infrastructure/types';
 
 /**
@@ -23,7 +23,9 @@ export const medicineKeys = {
   search: (q: string, source: MedicineSource, page: number) =>
     [...medicineKeys.all, 'search', source, q, page] as const,
   detail: (id: string, source: MedicineSource) =>
-    [...medicineKeys.all, 'detail', source, id] as const
+    [...medicineKeys.all, 'detail', source, id] as const,
+  network: (id: string, source: MedicineSource, limit: number) =>
+    [...medicineKeys.all, 'network', source, id, limit] as const
 };
 
 /**
@@ -60,3 +62,36 @@ export const medicineDetailOptions = (id: string, source: MedicineSource, enable
     enabled,
     staleTime: TEN_MINUTES
   });
+
+/**
+ * 单药邻域图。
+ *
+ * ## 为什么单独一条查询，不并进详情
+ *
+ * 详情已经带了一个 `take: 200` 的相互作用摘要，但那个长度**不是度数**
+ * （`DB00176` 真实是 2,249）。度数与限流图只能来自 `/network` 的 `count(*)`。
+ * 并进详情等于让「打开详情」这条最热的路径多背一次聚合查询。
+ *
+ * ## `limit` 进查询键
+ *
+ * 用户点「展开更多」时 `limit` 会变，不放进键就会命中上一次的小图，
+ * 界面表现为「点了没反应」。
+ */
+export const medicineNetworkOptions = (
+  id: string,
+  source: MedicineSource,
+  limit: number,
+  enabled: boolean
+) =>
+  queryOptions({
+    queryKey: medicineKeys.network(id, source, limit),
+    queryFn: () => getMedicineNetwork({ id }, { source, limit }),
+    enabled,
+    staleTime: TEN_MINUTES
+  });
+
+/** 图默认展示的邻居数，与后端 `DEFAULT_NEIGHBOUR_LIMIT` 对齐。 */
+export const DEFAULT_NETWORK_LIMIT = 30;
+
+/** 单次展开的步长。 */
+export const NETWORK_LIMIT_STEP = 30;

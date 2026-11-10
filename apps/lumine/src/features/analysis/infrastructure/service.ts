@@ -53,3 +53,20 @@ export async function searchMedicines(query: MedicineSearchQuery) {
 export async function getMedicineDetail(path: MedicineDetailPath, query: MedicineDetailQuery) {
   return expectData(await lucent.GET('/api/v1/medicines/{id}', { params: { path, query } }));
 }
+
+/** `GET /api/v1/medicines/{id}/network` 的查询参数。 */
+export type MedicineNetworkQuery = NonNullable<
+  operations['getMedicineNetwork']['parameters']['query']
+>;
+
+/**
+ * 取单药邻域图。
+ *
+ * `limit` 是**总数**上限（靶点优先、相互作用补足），不是每类各取；被截掉多少
+ * 由响应里的 `truncated` 给出。客户端不要自己从数组长度推断上限。
+ */
+export async function getMedicineNetwork(path: MedicineDetailPath, query: MedicineNetworkQuery) {
+  return expectData(
+    await lucent.GET('/api/v1/medicines/{id}/network', { params: { path, query } })
+  );
+}

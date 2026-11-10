@@ -32,6 +32,15 @@ export type MedicineSearchItem = components['schemas']['MedicineSearchResponseIt
 /** 搜索结果响应（`items` + `pagination`，直接用契约的形状）。 */
 export type MedicineSearchResponse = components['schemas']['MedicineSearchResponse'];
 
+/** 单药邻域图（`GET /api/v1/medicines/{id}/network`）。 */
+export type MedicineNetwork = components['schemas']['MedicineNetworkResponse'];
+
+/** 邻域图里的一个邻居节点。 */
+export type NetworkNeighbour = components['schemas']['MedicineNetworkResponseNeighbours'];
+
+/** 邻域图里的一条边。 */
+export type NetworkEdge = components['schemas']['MedicineNetworkResponseEdges'];
+
 /**
  * 知识源。
  *
