@@ -38,7 +38,7 @@ const MOCK_USER: SessionUser = {
   email: 'dev@lumine.local',
   nickname: 'Dev',
   avatar: null,
-  emailVerified: true,
+  isEmailVerified: true,
   emailVerifiedAt: '2026-01-01T00:00:00.000Z',
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z'

@@ -61,8 +61,9 @@ function toSessionUser(account: AccountInfo): SessionUser {
     email: account.email,
     nickname: account.nickname,
     avatar: account.avatar,
-    // `AccountDto` 只有 `emailVerifiedAt`，没有布尔位；已验证 ⟺ 时间非空。
-    emailVerified: account.emailVerifiedAt !== null,
+    // 契约的布尔字段统一带 `is` 前缀（Lucent 2026-11-08 标准化）；
+    // `emailVerifiedAt` 是时间戳，两者并存，不要互相替代。
+    isEmailVerified: account.emailVerifiedAt !== null,
     emailVerifiedAt: account.emailVerifiedAt,
     createdAt: account.createdAt,
     updatedAt: account.updatedAt

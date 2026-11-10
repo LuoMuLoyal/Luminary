@@ -26,7 +26,7 @@ const USER = {
   email: 'a@b.c',
   nickname: '测试',
   avatar: null,
-  emailVerified: true,
+  isEmailVerified: true,
   emailVerifiedAt: '2026-01-01T00:00:00.000Z',
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z'

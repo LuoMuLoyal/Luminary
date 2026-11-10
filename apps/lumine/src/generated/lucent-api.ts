@@ -976,6 +976,58 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/layouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all stored layouts of the authenticated user */
+        get: operations["listLayouts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/layouts/{surface}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one surface layout of the authenticated user */
+        get: operations["getLayout"];
+        /** Create or replace one surface layout */
+        put: operations["saveLayout"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/layouts/{surface}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stream an AI-composed A2UI surface for this screen */
+        post: operations["generateLayoutSurface"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/legal-documents": {
         parameters: {
             query?: never;
@@ -1036,6 +1088,26 @@ export type paths = {
         };
         /** Get medicine detail from a selected knowledge source */
         get: operations["getDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/medicines/{id}/network": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Neighbourhood graph of one drug (targets + truncated interaction partners)
+         * @description Facts only: no inferred edges. Neighbours are capped (default 30, max 100) and taken in index order by partner id, NOT ranked by importance; the response always states how many were omitted (`truncated`) and which ordering was used.
+         */
+        get: operations["getMedicineNetwork"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3005,8 +3077,8 @@ export type components = {
             createdAt: string;
             /** Format: email */
             email: string;
-            emailVerified: boolean;
             id: string;
+            isEmailVerified: boolean;
             /** Format: date-time */
             lastLoginAt: string | null;
             nickname: string | null;
@@ -3036,8 +3108,8 @@ export type components = {
             createdAt: string;
             /** Format: email */
             email: string;
-            emailVerified: boolean;
             id: string;
+            isEmailVerified: boolean;
             /** Format: date-time */
             lastLoginAt: string | null;
             nickname: string | null;
@@ -4884,6 +4956,20 @@ export type components = {
              */
             timezone?: string;
         };
+        /** @description Instruction for one generative surface. */
+        GenerateLayoutSurfaceRequest: {
+            /**
+             * @description Natural-language instruction describing what to show, in the user's own words.
+             * @example 把每日饮水做成三张并排的小卡，再配一句这周的整体情况
+             */
+            prompt: string;
+            /**
+             * @description Preferred time range; the model may ignore it.
+             * @example 7d
+             * @enum {string}
+             */
+            range?: "7d" | "30d";
+        };
         GenerateRequest: {
             /** @description Target date in YYYY-MM-DD format. Defaults to backend current day when omitted. */
             date?: string;
@@ -5266,6 +5352,107 @@ export type components = {
             /** @enum {string} */
             status: "ok" | "error" | "degraded" | "shutting_down";
         };
+        /** @description All stored layouts of the authenticated user. */
+        LayoutListResponse: {
+            /**
+             * @description Stored layouts keyed by surface. A missing surface means the user never customised it.
+             * @example {
+             *       "today": {
+             *         "surface": "today",
+             *         "version": 3,
+             *         "schemaVersion": 1,
+             *         "payload": {
+             *           "placements": [
+             *             {
+             *               "id": "summary.metrics",
+             *               "size": "wide"
+             *             }
+             *           ]
+             *         },
+             *         "updatedAt": "2026-10-30T12:00:00.000Z"
+             *       }
+             *     }
+             */
+            surfaces: {
+                [key: string]: {
+                    /**
+                     * @description Client-owned layout document. The server stores it verbatim and never interprets it.
+                     * @example {
+                     *       "placements": [
+                     *         {
+                     *           "id": "summary.metrics",
+                     *           "size": "wide"
+                     *         },
+                     *         {
+                     *           "id": "water.trend",
+                     *           "size": "compact"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    payload: unknown;
+                    /**
+                     * @description Shape version of `payload`, owned by the client.
+                     * @example 1
+                     */
+                    schemaVersion: number;
+                    /**
+                     * @description Surface identifier this layout belongs to.
+                     * @example today
+                     */
+                    surface: string;
+                    /**
+                     * @description ISO-8601 timestamp of the last write.
+                     * @example 2026-10-30T12:00:00.000Z
+                     */
+                    updatedAt: string;
+                    /**
+                     * @description Optimistic-concurrency token. Send it back as `ifVersion` on the next write.
+                     * @example 3
+                     */
+                    version: number;
+                };
+            };
+        };
+        /** @description One surface layout. */
+        LayoutResponse: {
+            /**
+             * @description Client-owned layout document. The server stores it verbatim and never interprets it.
+             * @example {
+             *       "placements": [
+             *         {
+             *           "id": "summary.metrics",
+             *           "size": "wide"
+             *         },
+             *         {
+             *           "id": "water.trend",
+             *           "size": "compact"
+             *         }
+             *       ]
+             *     }
+             */
+            payload: unknown;
+            /**
+             * @description Shape version of `payload`, owned by the client.
+             * @example 1
+             */
+            schemaVersion: number;
+            /**
+             * @description Surface identifier this layout belongs to.
+             * @example today
+             */
+            surface: string;
+            /**
+             * @description ISO-8601 timestamp of the last write.
+             * @example 2026-10-30T12:00:00.000Z
+             */
+            updatedAt: string;
+            /**
+             * @description Optimistic-concurrency token. Send it back as `ifVersion` on the next write.
+             * @example 3
+             */
+            version: number;
+        };
         LegalDocumentDetailResponse: {
             /** @description Markdown content of the document. */
             content: string;
@@ -5359,12 +5546,12 @@ export type components = {
             createdAt: string;
             /** @description 邮箱地址，第三方账号可能为空 */
             email: string | null;
-            /** @description 邮箱是否已验证 */
-            emailVerified: boolean;
             /** @description 邮箱验证时间 (ISO 8601) */
             emailVerifiedAt: string | null;
             /** @description 用户 ID */
             id: string;
+            /** @description 邮箱是否已验证 */
+            isEmailVerified: boolean;
             /** @description 昵称 */
             nickname: string | null;
             /** @description 更新时间 (ISO 8601) */
@@ -5426,6 +5613,64 @@ export type components = {
             scheduledTime?: string;
             /** @enum {string} */
             status: "taken" | "skipped" | "missed" | "planned";
+        };
+        MedicationOverviewResponse: {
+            /** @description One entry per shared ingredient; empty when nothing overlaps. */
+            duplicates: components["schemas"]["MedicationOverviewResponseDuplicates"][];
+            /**
+             * @description How many could be resolved to ingredients. The rest cannot participate in duplicate detection.
+             * @example 2
+             */
+            resolvableMedicines: number;
+            /** @description Entries grouped by health event, plus unattributed ones. */
+            sourceOverlaps: components["schemas"]["MedicationOverviewResponseSourceOverlaps"][];
+            /**
+             * @description Every current medicine on record.
+             * @example 3
+             */
+            totalMedicines: number;
+        };
+        MedicationOverviewResponseDuplicates: {
+            /** @description Display names of those entries. */
+            displayNames: string[];
+            /** @description Ids of the current-medicine entries involved. */
+            entryIds: string[];
+            /** @description Shared ingredient key that made these entries duplicates. */
+            ingredientKey: string;
+            /**
+             * @description high when three or more entries share the ingredient, or when they span two knowledge sources.
+             * @enum {string}
+             */
+            severity: "medium" | "high";
+        };
+        MedicationOverviewResponseSourceOverlaps: {
+            /** @description Display names in this group. */
+            displayNames: string[];
+            /** @description How many entries this medicine group holds. */
+            medicineCount: number;
+            /** @description Health event id, or "unattributed" when no event links the medicine. */
+            source: string;
+        };
+        MedicineCascadePathsResponse: {
+            cascades?: components["schemas"]["MedicineCascadePathsResponseCascades"][];
+            /**
+             * @description Whether the graph could answer the query.
+             * @example ok
+             * @enum {string}
+             */
+            status: "ok" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineCascadePathsResponseCascades: {
+            /** @description Drug whose exposure is affected downstream. */
+            endDrug: string;
+            /** @description First enzyme in the chain. */
+            enzymeOne: string;
+            /** @description Second enzyme in the chain. */
+            enzymeTwo: string;
+            /** @description Drug occupying the middle of the chain. */
+            middleDrug: string;
+            /** @description Starting drug name. */
+            startDrug: string;
         };
         MedicineDetailResponse: {
             detail: {
@@ -5650,6 +5895,116 @@ export type components = {
             /** @description UniProt title. */
             uniprotTitle: string | null;
         };
+        MedicineDrugActionsResponse: {
+            actions?: components["schemas"]["MedicineDrugActionsResponseActions"][];
+            /**
+             * @description Whether the graph could answer the query.
+             * @example ok
+             * @enum {string}
+             */
+            status: "ok" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineDrugActionsResponseActions: {
+            /** @description Action labels on the edge, when present. */
+            actions: string[];
+            /** @description Relation type (INHIBITS/INDUCES/ACTS_ON/SUBSTRATE_OF). */
+            relation: string;
+            /** @description Target gene symbol. */
+            targetGene: string;
+            /** @description Target display name. */
+            targetName: string;
+        };
+        MedicineEnzymeDuelsResponse: {
+            duels?: components["schemas"]["MedicineEnzymeDuelsResponseDuels"][];
+            /**
+             * @description Whether the graph could answer the query.
+             * @example ok
+             * @enum {string}
+             */
+            status: "ok" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineEnzymeDuelsResponseDuels: {
+            /** @description Enzyme where induction and metabolism meet. */
+            enzymeGene: string;
+            /** @description Drug inducing the enzyme (lowers substrate exposure). */
+            inducerDrug: string;
+            /** @description Substrate drug whose exposure falls. */
+            inhibitedSubstrate: string;
+        };
+        MedicineMechanismPathsResponse: {
+            paths?: components["schemas"]["MedicineMechanismPathsResponsePaths"][];
+            /**
+             * @description Whether the graph could answer the query.
+             * @example ok
+             * @enum {string}
+             */
+            status: "ok" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineMechanismPathsResponsePaths: {
+            /** @description Metabolising enzyme gene symbol. */
+            enzymeGene: string;
+            /** @description Enzyme display name. */
+            enzymeName: string;
+            /** @description Other drug DrugBank id. */
+            otherDrugId: string;
+            /** @description Other drug display name. */
+            otherDrugName: string;
+            /** @description What the first drug does to the enzyme (INHIBITS/INDUCES). */
+            relation: string;
+        };
+        MedicineNetworkResponse: {
+            center: components["schemas"]["MedicineNetworkResponseCenter"];
+            degree: components["schemas"]["MedicineNetworkResponseDegree"];
+            /** @description One edge per neighbour, always from the centre outward. Facts only. */
+            edges: components["schemas"]["MedicineNetworkResponseEdges"][];
+            /** @description At most `limit` neighbours; complete only when `truncated` is 0. */
+            neighbours: components["schemas"]["MedicineNetworkResponseNeighbours"][];
+            /**
+             * @description How the shown neighbours were chosen. drugbank_id_asc means deterministic index order, NOT ranked by importance.
+             * @enum {string}
+             */
+            ordering: "drugbank_id_asc";
+            /** @description Neighbours omitted by the limit. Non-zero means the UI must say "and N more"; treating the list as complete would misstate the drug’s degree. */
+            truncated: number;
+        };
+        MedicineNetworkResponseCenter: {
+            /** @description DrugBank id of the centre drug. */
+            id: string;
+            /** @description Display name of the centre drug. */
+            name: string;
+        };
+        MedicineNetworkResponseDegree: {
+            /** @description Total interacting drugs, from count(*), not the truncated list length. */
+            interactions: number;
+            /** @description Total drug-target edges of the centre drug. */
+            targets: number;
+        };
+        MedicineNetworkResponseEdges: {
+            /** @description Target-edge action labels (inhibitor, agonist, ...). */
+            actions: string[];
+            /**
+             * @description Which fact this edge states.
+             * @enum {string}
+             */
+            kind: "interaction" | "target";
+            /** @description Matches the neighbour id this edge ends at. */
+            neighbourId: string;
+            /** @description Target-edge relation kind (target / enzyme / carrier / transporter). */
+            relationKind: string | null;
+        };
+        MedicineNetworkResponseNeighbours: {
+            /** @description Entity id: DrugBank id for drugs, target id for proteins. */
+            id: string;
+            /** @description Whether the neighbour exists in the local catalogue. Interaction partners may have been retired upstream, so out-of-catalogue nodes are name-only and must not be linked. */
+            inCatalogue: boolean;
+            /** @description Display name. */
+            name: string;
+            /**
+             * @description Node type, used for shape and legend grouping.
+             * @enum {string}
+             */
+            nodeKind: "drug" | "protein";
+        };
         MedicineRecognitionJob: {
             /** @description Queued recognition job identifier. */
             jobId?: string;
@@ -5744,6 +6099,8 @@ export type components = {
              * @description Created at (ISO 8601).
              */
             createdAt: string;
+            /** @description Whether the record is stale. */
+            isStale: boolean;
             result: components["schemas"]["MedicineRiskCheckRecordResponseResult"];
             /**
              * @description Persisted risk level.
@@ -5755,8 +6112,6 @@ export type components = {
              * @example 42
              */
             riskScore: number;
-            /** @description Whether the record is stale. */
-            stale: boolean;
             /**
              * Format: date-time
              * @description Updated at (ISO 8601).
@@ -5873,6 +6228,8 @@ export type components = {
              * @description Created at (ISO 8601).
              */
             createdAt: string;
+            /** @description Whether the record is stale. */
+            isStale: boolean;
             result: components["schemas"]["MedicineRiskCheckRecordsResponseLlmResult"];
             /**
              * @description Persisted risk level.
@@ -5884,8 +6241,6 @@ export type components = {
              * @example 42
              */
             riskScore: number;
-            /** @description Whether the record is stale. */
-            stale: boolean;
             /**
              * Format: date-time
              * @description Updated at (ISO 8601).
@@ -5998,6 +6353,8 @@ export type components = {
              * @description Created at (ISO 8601).
              */
             createdAt: string;
+            /** @description Whether the record is stale. */
+            isStale: boolean;
             result: components["schemas"]["MedicineRiskCheckRecordsResponseStaticResult"];
             /**
              * @description Persisted risk level.
@@ -6009,8 +6366,6 @@ export type components = {
              * @example 42
              */
             riskScore: number;
-            /** @description Whether the record is stale. */
-            stale: boolean;
             /**
              * Format: date-time
              * @description Updated at (ISO 8601).
@@ -6193,6 +6548,95 @@ export type components = {
             /** @description UniProt identifier of the target. */
             uniprotId: string;
         };
+        MedicineSharedTargetsResponse: {
+            /**
+             * @description Whether the graph could answer the query.
+             * @example ok
+             * @enum {string}
+             */
+            status: "ok" | "notConfigured" | "unavailable" | "timeout";
+            targets?: components["schemas"]["MedicineSharedTargetsResponseTargets"][];
+        };
+        MedicineSharedTargetsResponseTargets: {
+            /** @description How many of the queried drugs hit this target. */
+            drugCount: number;
+            /** @description DrugBank ids hitting this target. */
+            drugIds: string[];
+            /** @description Display names hitting this target. */
+            drugNames: string[];
+            /** @description Shared target gene symbol. */
+            targetGene: string;
+            /** @description Shared target display name. */
+            targetName: string;
+        };
+        MedicineShortestRoutesResponse: {
+            routes?: components["schemas"]["MedicineShortestRoutesResponseRoutes"][];
+            /**
+             * @description Whether the graph could answer the query.
+             * @example ok
+             * @enum {string}
+             */
+            status: "ok" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineShortestRoutesResponseRoutes: {
+            /** @description Node display names, in path order. */
+            pathNodes: string[];
+            /** @description Edge types, aligned with pathNodes. */
+            pathRelations: string[];
+            /** @description Number of hops in the path. */
+            stepCount: number;
+        };
+        MedicineSubstituteCandidatesResponse: {
+            candidates?: components["schemas"]["MedicineSubstituteCandidatesResponseCandidates"][];
+            /**
+             * @description Whether the graph could answer the query.
+             * @example ok
+             * @enum {string}
+             */
+            status: "ok" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineSubstituteCandidatesResponseCandidates: {
+            /** @description Candidate DrugBank id. */
+            drugbankId: string;
+            /** @description Candidate display name. */
+            name: string;
+            /** @description Target shared with the source drug (the structural reason for candidacy). */
+            sharedTarget: string | null;
+        };
+        MedicineTargetDrugsResponse: {
+            drugs?: components["schemas"]["MedicineTargetDrugsResponseDrugs"][];
+            /**
+             * @description Whether the graph could answer the query.
+             * @example ok
+             * @enum {string}
+             */
+            status: "ok" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineTargetDrugsResponseDrugs: {
+            /** @description DrugBank id of a drug acting on the target. */
+            drugbankId: string;
+            /** @description Drug display name. */
+            name: string;
+            /** @description Relation type to the target. */
+            relation: string;
+        };
+        MedicineTransportRoutesResponse: {
+            routes?: components["schemas"]["MedicineTransportRoutesResponseRoutes"][];
+            /**
+             * @description Whether the graph could answer the query.
+             * @example ok
+             * @enum {string}
+             */
+            status: "ok" | "notConfigured" | "unavailable" | "timeout";
+        };
+        MedicineTransportRoutesResponseRoutes: {
+            /** @description True when the edge points transporter -> drug (do not draw a same-direction arrow). */
+            inverted: boolean;
+            /** @description Transporter gene symbol. */
+            transporterGene: string;
+            /** @description Transporter display name. */
+            transporterName: string;
+        };
         NotificationDetailResponse: {
             /** @description Action route target for the frontend. */
             action: string | null;
@@ -6239,13 +6683,13 @@ export type components = {
         NotificationPreferencesResponse: {
             /** @description Whether the user has a persisted preference row. */
             configured: boolean;
-            healthAlertsEnabled: boolean;
+            isHealthAlertsEnabled: boolean;
+            isSleepReminderEnabled: boolean;
+            isWaterRemindersEnabled: boolean;
+            isWeeklyInsightEnabled: boolean;
             sleepBedtimeMinutes: number | null;
-            sleepReminderEnabled: boolean;
             sleepWakeTimeMinutes: number | null;
             updatedAt: string | null;
-            waterRemindersEnabled: boolean;
-            weeklyInsightEnabled: boolean;
         };
         OAuthAuthorizeResponse: {
             /**
@@ -6268,17 +6712,17 @@ export type components = {
         };
         PatchRequest: {
             /** @description Enable health-rule notifications. */
-            healthAlertsEnabled?: boolean;
+            isHealthAlertsEnabled?: boolean;
+            /** @description Enable local bedtime sleep reminders. */
+            isSleepReminderEnabled?: boolean;
+            /** @description Enable water shortfall notifications. */
+            isWaterRemindersEnabled?: boolean;
+            /** @description Enable weekly longitudinal insights. */
+            isWeeklyInsightEnabled?: boolean;
             /** @description Bedtime as minutes after local midnight. */
             sleepBedtimeMinutes?: number | null;
-            /** @description Enable local bedtime sleep reminders. */
-            sleepReminderEnabled?: boolean;
             /** @description Wake time as minutes after local midnight. */
             sleepWakeTimeMinutes?: number | null;
-            /** @description Enable water shortfall notifications. */
-            waterRemindersEnabled?: boolean;
-            /** @description Enable weekly longitudinal insights. */
-            weeklyInsightEnabled?: boolean;
         };
         /** @default {} */
         PreviewClinicSummaryRequest: {
@@ -6462,12 +6906,12 @@ export type components = {
             createdAt: string;
             /** @description 邮箱地址，第三方账号可能为空 */
             email: string | null;
-            /** @description 邮箱是否已验证 */
-            emailVerified: boolean;
             /** @description 邮箱验证时间 (ISO 8601) */
             emailVerifiedAt: string | null;
             /** @description 用户 ID */
             id: string;
+            /** @description 邮箱是否已验证 */
+            isEmailVerified: boolean;
             /** @description 昵称 */
             nickname: string | null;
         };
@@ -6540,6 +6984,11 @@ export type components = {
         };
         ReportDashboardResponseFindings: {
             body: string;
+            /**
+             * @description Stable rule identifier of this finding, e.g. "hydration_low". Stable across requests and languages; safe to reference.
+             * @example hydration_low
+             */
+            id: string;
             /** @enum {string} */
             kind: "medication" | "hydration" | "sleep" | "general";
             title: string;
@@ -6796,6 +7245,15 @@ export type components = {
              */
             source: "drugbank" | "cn";
         };
+        /** @description Layout document to persist for one surface. */
+        SaveLayoutRequest: {
+            /** @description Version the client last read. Omit or send null for an unconditional write. */
+            ifVersion?: number | null;
+            /** @description Client-owned layout document. Stored verbatim; the server never interprets it. An object for page layouts, an array for tab_chrome. */
+            payload: unknown;
+            /** @description Shape version of `payload`; must be within the server-supported range. */
+            schemaVersion: number;
+        };
         SendVerificationCodeRequest: {
             /** @description 邮箱地址 */
             email: string;
@@ -6843,12 +7301,12 @@ export type components = {
             createdAt: string;
             /** @description 邮箱地址。OAuth-only 账号在补填邮箱前为 null */
             email: string | null;
-            /** @description 邮箱是否已验证 */
-            emailVerified: boolean;
             /** @description 邮箱验证时间 (ISO 8601) */
             emailVerifiedAt: string | null;
             /** @description 用户 ID */
             id: string;
+            /** @description 邮箱是否已验证 */
+            isEmailVerified: boolean;
             /** @description 昵称 */
             nickname: string | null;
             /** @description 更新时间 (ISO 8601) */
@@ -7396,13 +7854,13 @@ export type components = {
             icon: string;
             /** @description Unique suggestion id */
             id: string;
+            /** @description Whether this card can trigger a notification */
+            isNotificationEligible?: boolean;
             /**
              * @description Lifecycle state
              * @enum {string}
              */
             lifecycleState: "generated" | "active" | "fading" | "expired" | "dismissed";
-            /** @description Whether this card can trigger a notification */
-            notificationEligible?: boolean;
             observedMetric?: components["schemas"]["TodaySuggestionsResponseObservationsObservedMetric"];
             primaryAction: components["schemas"]["TodaySuggestionsResponseObservationsPrimaryAction"];
             /** @description Why this suggestion appeared */
@@ -7494,13 +7952,13 @@ export type components = {
             icon: string;
             /** @description Unique suggestion id */
             id: string;
+            /** @description Whether this card can trigger a notification */
+            isNotificationEligible?: boolean;
             /**
              * @description Lifecycle state
              * @enum {string}
              */
             lifecycleState: "generated" | "active" | "fading" | "expired" | "dismissed";
-            /** @description Whether this card can trigger a notification */
-            notificationEligible?: boolean;
             observedMetric?: components["schemas"]["TodaySuggestionsResponsePrimaryObservedMetric"];
             primaryAction: components["schemas"]["TodaySuggestionsResponsePrimaryPrimaryAction"];
             /** @description Why this suggestion appeared */
@@ -7591,13 +8049,13 @@ export type components = {
             icon: string;
             /** @description Unique suggestion id */
             id: string;
+            /** @description Whether this card can trigger a notification */
+            isNotificationEligible?: boolean;
             /**
              * @description Lifecycle state
              * @enum {string}
              */
             lifecycleState: "generated" | "active" | "fading" | "expired" | "dismissed";
-            /** @description Whether this card can trigger a notification */
-            notificationEligible?: boolean;
             observedMetric?: components["schemas"]["TodaySuggestionsResponseSecondaryObservedMetric"];
             primaryAction: components["schemas"]["TodaySuggestionsResponseSecondaryPrimaryAction"];
             /** @description Why this suggestion appeared */
@@ -10782,6 +11240,175 @@ export interface operations {
             };
         };
     };
+    listLayouts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stored layouts keyed by surface. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayoutListResponse"];
+                };
+            };
+        };
+    };
+    getLayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Surface identifier. */
+                surface: "today" | "record" | "medicine" | "review" | "mine" | "tab_chrome";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The stored layout for this surface. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayoutResponse"];
+                };
+            };
+            /** @description No layout stored for this surface (RESOURCE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    saveLayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Surface identifier. */
+                surface: "today" | "record" | "medicine" | "review" | "mine" | "tab_chrome";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveLayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description The stored layout after the write. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayoutResponse"];
+                };
+            };
+            /** @description Unknown surface or invalid body (LAYOUT_SURFACE_UNKNOWN) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Version conflict (LAYOUT_VERSION_CONFLICT); carries the current document under `errors.current` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Unsupported document shape (LAYOUT_SCHEMA_VERSION_UNSUPPORTED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    generateLayoutSurface: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Surface to compose. The tab bar is not composable. */
+                surface: "today" | "record" | "medicine" | "review" | "mine";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateLayoutSurfaceRequest"];
+            };
+        };
+        responses: {
+            /** @description Server-Sent Events stream without the API envelope. Each event has an "event" field (chunk | result | error | done) and a JSON "data" field. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            /** @description Empty prompt or a surface that cannot be composed (GENERATIVE_PROMPT_EMPTY / GENERATIVE_SURFACE_UNSUPPORTED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Prompt exceeds the length bound (GENERATIVE_PROMPT_TOO_LONG) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description Model output rejected by the catalog (GENERATIVE_OUTPUT_REJECTED) */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+            /** @description No model configured (LLM_NOT_CONFIGURED) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
     listLegalDocuments: {
         parameters: {
             query?: {
@@ -10900,6 +11527,43 @@ export interface operations {
             };
         };
     };
+    getMedicineNetwork: {
+        parameters: {
+            query?: {
+                /** @description Neighbourhood depth. Only 1 is supported: depth 2 on the interaction graph is quadratic and unreadable. */
+                depth?: 1;
+                /** @description Maximum neighbour nodes (1-100, default 30). Deterministic index order, not importance-ranked. */
+                limit?: number;
+                /** @description Knowledge source. Only drugbank has a relation graph; cn returns an empty graph. */
+                source?: "drugbank" | "cn";
+            };
+            header?: never;
+            path: {
+                /** @description DrugBank id of the centre drug */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Neighbourhood graph. Empty neighbours with truncated=0 when the drug has no relations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MedicineNetworkResponse"];
+                };
+            };
+            /** @description Unknown medicine id. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getSequences: {
         parameters: {
             query?: {
@@ -10943,7 +11607,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicationOverviewResponse"];
+                };
             };
             /** @description Access token invalid or expired */
             401: {
@@ -11039,7 +11705,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicineDrugActionsResponse"];
+                };
             };
         };
     };
@@ -11060,7 +11728,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicineCascadePathsResponse"];
+                };
             };
         };
     };
@@ -11081,7 +11751,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicineEnzymeDuelsResponse"];
+                };
             };
         };
     };
@@ -11102,7 +11774,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicineMechanismPathsResponse"];
+                };
             };
         };
     };
@@ -11123,7 +11797,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicineSharedTargetsResponse"];
+                };
             };
         };
     };
@@ -11146,7 +11822,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicineShortestRoutesResponse"];
+                };
             };
         };
     };
@@ -11169,7 +11847,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicineSubstituteCandidatesResponse"];
+                };
             };
         };
     };
@@ -11190,7 +11870,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicineTargetDrugsResponse"];
+                };
             };
         };
     };
@@ -11211,7 +11893,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MedicineTransportRoutesResponse"];
+                };
             };
         };
     };
