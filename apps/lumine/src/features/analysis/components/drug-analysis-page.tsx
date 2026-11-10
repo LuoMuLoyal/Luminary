@@ -1,11 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ANALYSIS_NAMESPACE } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-import { medicineDetailOptions, medicineSearchOptions } from '../application/queries';
+import {
+  DEFAULT_NETWORK_LIMIT,
+  NETWORK_LIMIT_STEP,
+  medicineDetailOptions,
+  medicineNetworkOptions,
+  medicineSearchOptions
+} from '../application/queries';
+import { projectNetwork, type NetworkView } from '../application/project-network';
 import {
   projectCounts,
   projectCrossReferences,
@@ -76,6 +83,18 @@ export function DrugAnalysisPage({
     medicineDetailOptions(selection?.id ?? '', selection?.source ?? source, selection !== null)
   );
 
+  /**
+   * 邻域图的展示上限（用户点「展开更多」时递增）。
+   *
+   * 换选另一个药时必须重置回 30：否则上一个药展开到 90，新药一打开就是
+   * 90 个节点，既慢又更难读。
+   */
+  const [networkLimit, setNetworkLimit] = useState(DEFAULT_NETWORK_LIMIT);
+
+  useEffect(() => {
+    setNetworkLimit(DEFAULT_NETWORK_LIMIT);
+  }, [selection?.id, selection?.source]);
+
   const searchState = useMemo(
     () =>
       resolveSearchState({
@@ -97,6 +116,27 @@ export function DrugAnalysisPage({
         isPending: detailQuery.isPending
       }),
     [selection, detailQuery.data, detailQuery.error, detailQuery.isPending]
+  );
+
+  /**
+   * 邻域图与详情**并行取**，不等详情回来才发。
+   *
+   * 两条请求互不依赖（图不读详情字段），串行只会让首屏慢一个 RTT。
+   * 图失败不影响详情：详情该显示的照常显示，只是没有关系区块——
+   * 这与「字段缺失」同构，不是错误状态。
+   */
+  const networkQuery = useQuery(
+    medicineNetworkOptions(
+      selection?.id ?? '',
+      selection?.source ?? source,
+      networkLimit,
+      selection !== null
+    )
+  );
+
+  const networkView = useMemo(
+    () => (networkQuery.data ? projectNetwork(networkQuery.data) : null),
+    [networkQuery.data]
   );
 
   const retryDetail = useCallback(() => {
@@ -142,7 +182,18 @@ export function DrugAnalysisPage({
         {detailState.status === 'error' && (
           <RequestFailure problem={detailState.problem} onRetry={retryDetail} />
         )}
-        {detailState.status === 'ready' && <Detail detail={detailState.detail} />}
+        {detailState.status === 'ready' && (
+          <Detail
+            detail={detailState.detail}
+            network={networkView}
+            onExpandNetwork={() => {
+              setNetworkLimit((current) => current + NETWORK_LIMIT_STEP);
+            }}
+            canExpandNetwork={
+              networkView !== null && !networkView.complete && networkView.nodes.length > 0
+            }
+          />
+        )}
       </div>
     </div>
   );
@@ -175,7 +226,17 @@ function NotSelected() {
 }
 
 /** 把载荷投影成可渲染内容；空值在投影阶段已被剔除。 */
-function Detail({ detail }: { detail: Parameters<typeof projectIdentity>[0] }) {
+function Detail({
+  detail,
+  network,
+  onExpandNetwork,
+  canExpandNetwork
+}: {
+  detail: Parameters<typeof projectIdentity>[0];
+  network: NetworkView | null;
+  onExpandNetwork: () => void;
+  canExpandNetwork: boolean;
+}) {
   const identity = useMemo(
     () => [...projectIdentity(detail), ...projectDrugbankIdentity(detail)],
     [detail]
@@ -197,6 +258,9 @@ function Detail({ detail }: { detail: Parameters<typeof projectIdentity>[0] }) {
       targets={targets}
       pharmacokinetics={pharmacokinetics}
       crossRefs={crossRefs}
+      network={network}
+      onExpandNetwork={onExpandNetwork}
+      canExpandNetwork={canExpandNetwork}
     />
   );
 }

@@ -48,8 +48,21 @@
   },
   "counts": {
     "targets": "Targets",
+    "interactions": "Interactions",
     "synonyms": "Synonyms",
     "crossRefs": "External references"
+  },
+  "network": {
+    "title": "Relation network",
+    "truncated": "{{count}} more not shown",
+    "expand": "Show more",
+    "orderingNote": "Neighbours are shown in id order, not ranked by importance.",
+    "empty": "No relation data for this medicine.",
+    "legend": {
+      "target": "Target",
+      "interaction": "Interaction partner",
+      "factsOnly": "Facts only — no inferred edges"
+    }
   },
   "identity": {
     "source": "Source",

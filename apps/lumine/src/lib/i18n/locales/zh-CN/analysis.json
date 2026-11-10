@@ -48,8 +48,21 @@
   },
   "counts": {
     "targets": "靶点",
+    "interactions": "相互作用",
     "synonyms": "同义词",
     "crossRefs": "外部引用"
+  },
+  "network": {
+    "title": "关系网络",
+    "truncated": "还有 {{count}} 个未显示",
+    "expand": "展开更多",
+    "orderingNote": "邻居按 id 顺序展示，未按重要性排序。",
+    "empty": "该药品没有关系数据。",
+    "legend": {
+      "target": "靶点",
+      "interaction": "相互作用对象",
+      "factsOnly": "仅含数据写明的关系，无推断边"
+    }
   },
   "identity": {
     "source": "数据源",

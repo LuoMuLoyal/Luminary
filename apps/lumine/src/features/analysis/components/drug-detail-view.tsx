@@ -18,7 +18,9 @@ import type {
   TargetRow,
   TextSection
 } from '../application/project-detail';
+import type { NetworkView } from '../application/project-network';
 import { MetricList, Section } from './metric-list';
+import { RelationNetwork } from './relation-network';
 
 /**
  * 详情视图 —— **只负责渲染已经有值的东西**。
@@ -46,7 +48,10 @@ export function DrugDetailView({
   textSections,
   targets,
   pharmacokinetics,
-  crossRefs
+  crossRefs,
+  network = null,
+  onExpandNetwork,
+  canExpandNetwork = false
 }: {
   name: string;
   id: string;
@@ -57,6 +62,15 @@ export function DrugDetailView({
   targets: readonly TargetRow[];
   pharmacokinetics: readonly Metric[];
   crossRefs: readonly CrossRef[];
+  /**
+   * 邻域图；`null`/省略表示图还没取回来或该源没有图。
+   *
+   * 可选而不是必填：图是**附加**信息，详情必须能在图未就绪时完整渲染——
+   * 让图成为必填会把「图接口慢/挂了」变成「整页渲染不了」。
+   */
+  network?: NetworkView | null;
+  onExpandNetwork?: () => void;
+  canExpandNetwork?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -70,7 +84,25 @@ export function DrugDetailView({
         {subtitle && <p className='text-muted-foreground text-sm'>{subtitle}</p>}
       </header>
 
-      <Counts counts={counts} />
+      <Counts counts={counts} network={network} />
+
+      {network !== null && network.nodes.length > 0 && (
+        <Section titleKey='network.title'>
+          <RelationNetwork
+            view={network}
+            onExpand={onExpandNetwork ?? (() => undefined)}
+            canExpand={canExpandNetwork}
+          />
+        </Section>
+      )}
+
+      {network !== null && network.nodes.length === 0 && (
+        <Section titleKey='network.title'>
+          <p className='text-muted-foreground text-sm'>
+            {t(`${ANALYSIS_NAMESPACE}:network.empty`)}
+          </p>
+        </Section>
+      )}
 
       {identity.length > 0 && (
         <Section titleKey='section.identity'>
@@ -121,26 +153,33 @@ export function DrugDetailView({
  * 计数为 0 的项**不显示**——0 个靶点没有信息量，写出来只是噪音。
  * 这一条与「有什么展示什么」一致：0 就是没有。
  *
- * 这里没有「相互作用对象」一项：详情接口对相互作用是 `take: 200`，
- * 那个长度不是真实度数（`DB00176` 真实是 2,249）。宁可不显示，
- * 也不用截断值冒充总数，理由见 `project-detail.ts`。
+ * ## 「相互作用」这一项现在才出现
+ *
+ * 详情接口对相互作用是 `take: 200`，那个长度**不是**真实度数（`DB00176` 真实是
+ * 2,249），所以过去宁可不显示。现在度数来自 `/network` 的 `count(*)`，
+ * 是真实值，才敢在这里写出来。
  */
-function Counts({ counts }: { counts: CountSummary }) {
+function Counts({ counts, network }: { counts: CountSummary; network: NetworkView | null }) {
   const { t } = useTranslation();
 
-  const entries = (
-    [
-      ['counts.targets', counts.targets],
-      ['counts.synonyms', counts.synonyms],
-      ['counts.crossRefs', counts.crossRefs]
-    ] as const
-  ).filter(([, value]) => value > 0);
+  const interactions = network?.degree.interactions ?? null;
+  const targets = network?.degree.targets ?? counts.targets;
+
+  const entries: Array<{ key: string; value: number }> = [];
+  const add = (key: string, value: number | null) => {
+    if (value !== null && value > 0) entries.push({ key, value });
+  };
+
+  add('counts.interactions', interactions);
+  add('counts.targets', targets);
+  add('counts.synonyms', counts.synonyms);
+  add('counts.crossRefs', counts.crossRefs);
 
   if (entries.length === 0) return null;
 
   return (
     <dl className='flex flex-wrap gap-x-8 gap-y-3'>
-      {entries.map(([key, value]) => (
+      {entries.map(({ key, value }) => (
         <div key={key} className='flex flex-col'>
           <dt className='text-muted-foreground text-xs'>{t(`${ANALYSIS_NAMESPACE}:${key}`)}</dt>
           <dd className='font-mono text-lg tabular-nums'>{value}</dd>
