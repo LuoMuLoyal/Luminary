@@ -3180,7 +3180,7 @@ export type components = {
              * @description Stable tool identifier exposed to the client.
              * @enum {string}
              */
-            name: "get_today_records" | "get_records_by_date" | "get_records_by_range" | "get_today_summary_by_date" | "get_report_summary_by_range" | "get_recent_today_summaries" | "get_recent_report_summaries" | "get_user_profile" | "get_user_settings" | "get_current_medicines" | "get_sleep_summary_by_range" | "get_meal_analysis_digest" | "search_cn_medicine_products" | "get_cn_medicine_detail" | "search_cn_medicine_knowledge" | "resolve_drugbank_entity" | "get_drugbank_detail" | "search_drugbank_passages" | "reason_over_ontology" | "reason_over_rules" | "propose_create_daily_record" | "propose_update_daily_record" | "propose_delete_daily_record" | "propose_update_user_settings";
+            name: "get_today_records" | "get_records_by_date" | "get_records_by_range" | "get_today_summary" | "get_report_summary" | "get_today_summaries" | "get_report_summaries" | "get_user_profile" | "get_user_settings" | "get_medicines" | "get_sleep_summary" | "get_meal_digest" | "search_cn_products" | "get_cn_product_detail" | "search_cn_knowledge" | "resolve_drugbank" | "get_drugbank_detail" | "search_drugbank" | "reason_ontology" | "reason_rules" | "create_record_draft" | "update_record_draft" | "delete_record_draft" | "update_settings_draft";
             /** @description Whether the current user settings permit this tool in principle. */
             permittedByUser: boolean;
             /** @description Context sources this tool requires before it may run. Allowed values: health_profile, daily_records, sleep_records, current_medicines. */
@@ -7249,7 +7249,7 @@ export type components = {
         SaveLayoutRequest: {
             /** @description Version the client last read. Omit or send null for an unconditional write. */
             ifVersion?: number | null;
-            /** @description Client-owned layout document. Stored verbatim; the server never interprets it. An object for page layouts, an array for tab_chrome. */
+            /** @description Client-owned layout document. Stored verbatim; the server never interprets it. An object for page layouts, an array for tab. */
             payload: unknown;
             /** @description Shape version of `payload`; must be within the server-supported range. */
             schemaVersion: number;
@@ -11266,7 +11266,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description Surface identifier. */
-                surface: "today" | "record" | "medicine" | "review" | "mine" | "tab_chrome";
+                surface: "today" | "record" | "medicine" | "review" | "mine" | "tab";
             };
             cookie?: never;
         };
@@ -11298,7 +11298,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description Surface identifier. */
-                surface: "today" | "record" | "medicine" | "review" | "mine" | "tab_chrome";
+                surface: "today" | "record" | "medicine" | "review" | "mine" | "tab";
             };
             cookie?: never;
         };
