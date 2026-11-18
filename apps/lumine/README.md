@@ -141,7 +141,9 @@ pnpm contract          # -> src/generated/lucent-api.ts（勿手改）
 `src/**` 下按类型分目录的约定也会被它打断。
 
 该目录已加入 `.oxlintrc.json` 与 `.oxfmtrc.json` 的 ignore——生成文件自带格式，
-规则不该对它报错或重写它。
+规则不该对它报错或重写它。`.lintstagedrc.json` 的格式化命令因此带
+`--no-error-on-unmatched-pattern`：只提交这个目录（纯生成物）时 oxfmt 匹配不到目标文件，
+不加会报「至少一个目标文件」而拦下提交。
 
 - 契约源：`<workspace>/Lucent/docs/reference/generated/openapi.json`。
   路径按 `pnpm-workspace.yaml` 标记向上找，不数层级（数层级在目录变动时会**静默**指错）。
