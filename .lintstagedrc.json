@@ -1,13 +1,13 @@
 {
   "apps/lumine/**/*.{ts,tsx}": [
-    "pnpm --filter @luminary/lumine exec oxlint --fix",
-    "pnpm --filter @luminary/lumine exec oxfmt --write"
+    "pnpm --filter @luminary/lumine exec oxlint --fix --no-error-on-unmatched-pattern",
+    "pnpm --filter @luminary/lumine exec oxfmt --write --no-error-on-unmatched-pattern"
   ],
-  "apps/lumine/**/*.{json,md,css}": ["pnpm --filter @luminary/lumine exec oxfmt --write"],
+  "apps/lumine/**/*.{json,md,css}": ["pnpm --filter @luminary/lumine exec oxfmt --write --no-error-on-unmatched-pattern"],
   "apps/personal/**/*.{ts,tsx}": [
-    "pnpm --filter @luminary/personal exec oxlint --fix",
-    "pnpm --filter @luminary/personal exec oxfmt --write"
+    "pnpm --filter @luminary/personal exec oxlint --fix --no-error-on-unmatched-pattern",
+    "pnpm --filter @luminary/personal exec oxfmt --write --no-error-on-unmatched-pattern"
   ],
-  "apps/personal/**/*.{json,md,css}": ["pnpm --filter @luminary/personal exec oxfmt --write"],
+  "apps/personal/**/*.{json,md,css}": ["pnpm --filter @luminary/personal exec oxfmt --write --no-error-on-unmatched-pattern"],
   "apps/site/**/*.{ts,tsx}": ["pnpm --filter @luminary/site exec eslint --fix"]
 }
